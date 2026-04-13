@@ -1,3 +1,4 @@
+import io
 import pandas as pd
 from decimal import Decimal
 from app.schemas.procesamiento import AlertasProcesamiento
@@ -25,7 +26,7 @@ def parsear_saldos_iniciales(file_bytes: bytes) -> dict:
     Lee el archivo Excel de saldos iniciales.
     Retorna dict: { codigo: { cantidad, costo_unitario, costo_total } }
     """
-    df = pd.read_excel(file_bytes, header=None, dtype={0: str, 3: str, 4: str, 5: str})
+    df = pd.read_excel(io.BytesIO(file_bytes), header=None, dtype={0: str, 3: str, 4: str, 5: str})
     saldos = {}
 
     for _, row in df.iterrows():
@@ -59,7 +60,7 @@ def parsear_movimientos(file_bytes: bytes, filename: str) -> tuple[pd.DataFrame,
     Retorna (DataFrame, error_message)
     """
     try:
-        df_raw = pd.read_excel(file_bytes, header=None, dtype={0: str})
+        df_raw = pd.read_excel(io.BytesIO(file_bytes), header=None, dtype={0: str})
         registros = []
 
         for _, row in df_raw.iterrows():

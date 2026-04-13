@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Annotated, List
 from app.core.database import get_db
 from app.services.kardex_service import KardexService
 from app.services.excel_service import ExcelService
@@ -17,14 +18,20 @@ router = APIRouter(prefix="/kardex", tags=["Kardex"])
 # ── Subir y procesar archivos ─────────────────────────────────────────────────
 @router.post("/procesar", response_model=UploadResponse, status_code=201)
 async def procesar_kardex(
-    movimientos: list[UploadFile] = File(..., description="Uno o más archivos Excel de movimientos"),
-    saldos:      UploadFile | None = File(None, description="Archivo Excel de saldos iniciales"),
+    movimiento1: Annotated[UploadFile,        File(description="Archivo de movimientos 1 (requerido)")],
+    movimiento2: Annotated[UploadFile | None, File(description="Archivo de movimientos 2 (opcional)")] = None,
+    movimiento3: Annotated[UploadFile | None, File(description="Archivo de movimientos 3 (opcional)")] = None,
+    saldos:      Annotated[UploadFile | None, File(description="Archivo de saldos iniciales (opcional)")] = None,
     db:          AsyncSession = Depends(get_db),
 ):
     """
     Sube y procesa archivos Excel de kardex.
+    Soporta hasta 3 archivos de movimientos simultáneos.
     Calcula el saldo final, verifica integridad y persiste en BD.
     """
+    # Armar lista de movimientos ignorando los None
+    movimientos = [f for f in [movimiento1, movimiento2, movimiento3] if f is not None]
+
     # Validar extensiones
     archivos_invalidos = [
         f.filename for f in movimientos

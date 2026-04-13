@@ -8,8 +8,8 @@ export const procesarArchivos = async (
 ): Promise<UploadResponse> => {
   const formData = new FormData()
 
-  archivosMovimientos.forEach((file) => {
-    formData.append('movimientos', file)
+  archivosMovimientos.forEach((file, index) => {
+    formData.append(`movimiento${index + 1}`, file)
   })
 
   if (archivoSaldos) {
