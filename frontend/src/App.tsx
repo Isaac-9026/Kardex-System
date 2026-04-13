@@ -6,9 +6,9 @@ import Historial from './pages/Historial'
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/kardex/:codigo" element={<Kardex />} />
-      <Route path="/historial" element={<Historial />} />
+      <Route path="/"                          element={<Home />}     />
+      <Route path="/kardex/:procesamiento_id"  element={<Kardex />}  />
+      <Route path="/historial"                 element={<Historial />} />
     </Routes>
   )
 }
