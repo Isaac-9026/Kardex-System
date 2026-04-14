@@ -45,7 +45,7 @@ con cálculo de Costo Promedio Ponderado y verificación de integridad de datos.
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate        # Windows
+source venv/Scripts/activate      # Windows
 source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 ```
@@ -66,7 +66,7 @@ alembic upgrade head
 Iniciar servidor:
 
 ```bash
-uvicorn main:app --reload
+uvicorn app.main:app --reload --port 8000
 ```
 
 ### Frontend
