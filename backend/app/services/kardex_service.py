@@ -172,11 +172,13 @@ class KardexService:
     # ── Helpers privados ──────────────────────────────────────────────────────
     async def _persistir_saldos_iniciales(self, saldos: dict) -> None:
         """Guarda o actualiza los saldos iniciales en BD."""
+        from datetime import date as date_type
         for codigo, datos in saldos.items():
             producto = await self.producto_repo.get_or_create(codigo)
+            fecha = datos.get("fecha") or date_type.today()
             await self.saldo_repo.upsert(
                 producto_id    = producto.id,
-                fecha          = datos.get("fecha"),
+                fecha          = fecha,
                 cantidad       = datos["cantidad"],
                 costo_unitario = datos["costo_unitario"],
                 costo_total    = datos["costo_total"],

@@ -37,6 +37,17 @@ def parsear_saldos_iniciales(file_bytes: bytes) -> dict:
             continue
 
         try:
+            # Parsear fecha — soporta string dd/mm/yyyy, yyyy-mm-dd y datetime
+            fecha_raw = row.iloc[1]
+            if pd.isna(fecha_raw):
+                fecha = None
+            elif isinstance(fecha_raw, str):
+                fecha = pd.to_datetime(fecha_raw, dayfirst=True, errors="coerce")
+                fecha = fecha.date() if pd.notna(fecha) else None
+            else:
+                fecha = pd.to_datetime(fecha_raw, errors="coerce")
+                fecha = fecha.date() if pd.notna(fecha) else None
+
             cantidad       = float(Decimal(str(row.iloc[3])).normalize())
             costo_unitario = float(Decimal(str(row.iloc[4])).normalize())
             costo_total    = float(row.iloc[5])
@@ -44,6 +55,7 @@ def parsear_saldos_iniciales(file_bytes: bytes) -> dict:
             continue
 
         saldos[codigo] = {
+            "fecha":          fecha,
             "cantidad":       cantidad,
             "costo_unitario": costo_unitario,
             "costo_total":    costo_total,
