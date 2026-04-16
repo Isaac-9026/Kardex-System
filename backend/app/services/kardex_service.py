@@ -82,7 +82,7 @@ class KardexService:
             len(alertas.saldo_negativo) > 0 or
             int((df_all["Semaforo"] != "🟢").sum()) > 0
         )
-        estado = "con_alertas" if tiene_alertas else "exitoso"
+        estado = "con_alertas" if tiene_alertas else "procesado" #<--- Cambiado de exitoso a procesado
 
         # ── 7. Persistir en BD ────────────────────────────────────────────────
         nombre_archivo = ", ".join([f for f, _ in archivos_mov])
@@ -203,24 +203,50 @@ class KardexService:
         """Convierte el DataFrame a dicts y los inserta en BD."""
         registros = []
 
-        for _, row in df.iterrows():
-            codigo   = str(row["Codigo"]).strip()
-            producto = await self.producto_repo.get_or_create(codigo)
+        # 🔥 1. MAPEO INTELIGENTE PARA EL ENUM
+        MAPEO_OPERACIONES = {
+            "01 venta": "01 Venta",
+            "venta": "01 Venta",
+            "02 compra": "02 Compra",
+            "compra": "02 Compra",
+            "05 devolucion recibida": "05 Devolucion Recibida",
+            "devolucion": "05 Devolucion Recibida",
+            "05 devolución recibida": "05 Devolucion Recibida" # Por si viene con tilde
+        }
 
+        # 🔥 2. CACHÉ DE PRODUCTOS (Solución al N+1 que llenaba tus logs)
+        cache_productos = {}
+
+        for _, row in df.iterrows():
+            codigo = str(row["Codigo"]).strip()
+            
+            # Solo consulta a la base de datos si es la primera vez que ve este código
+            if codigo not in cache_productos:
+                producto = await self.producto_repo.get_or_create(codigo)
+                cache_productos[codigo] = producto.id
+            
+            producto_id = cache_productos[codigo]
+
+            # 🔥 3. CONSERVAR CEROS A LA IZQUIERDA DEL EXCEL
             numero_val = str(row["Numero"]).strip()
-            try:
-                numero_val = str(int(float(numero_val))) if numero_val not in ("", "nan") else "0"
-            except Exception:
+            if numero_val.lower() == "nan" or numero_val == "":
                 numero_val = "0"
+            elif numero_val.endswith('.0'): 
+                # Pandas a veces añade .0 a los números, esto lo quita sin borrar los ceros iniciales
+                numero_val = numero_val[:-2]
+
+            # 🔥 4. APLICAR EL MAPEO AL TIPO DE OPERACIÓN
+            op_raw = str(row["Tipo_Operacion"]).strip().lower()
+            tipo_operacion_db = MAPEO_OPERACIONES.get(op_raw, "01 Venta") # "01 Venta" por defecto si hay error
 
             registros.append({
-                "producto_id":      producto.id,
+                "producto_id":      producto_id,
                 "procesamiento_id": procesamiento_id,
                 "fecha":            row["Fecha"].date() if pd.notna(row["Fecha"]) else None,
                 "tipo_comprobante": int(row["Tipo"]) if pd.notna(row["Tipo"]) else 0,
-                "serie":            str(row["Serie"]),
+                "serie":            str(row["Serie"]).strip(),
                 "numero":           numero_val,
-                "tipo_operacion":   str(row["Tipo_Operacion"]),
+                "tipo_operacion":   tipo_operacion_db,
                 # Entradas
                 "ent_cantidad":     float(row["Ent_Cantidad"]),
                 "ent_costo_unit":   float(row["Ent_Costo_Unit"]),
@@ -238,7 +264,7 @@ class KardexService:
                 "orig_ent_costo_total": float(row["Orig_Ent_Costo_Total"]),
                 "orig_sal_costo_unit":  float(row["Orig_Sal_Costo_Unit"]),
                 "orig_sal_costo_total": float(row["Orig_Sal_Costo_Total"]),
-                # Flags de validación (semáforo NO se guarda en BD)
+                # Flags de validación
                 "saldo_negativo": bool(row["Saldo_Negativo"]),
                 "error_a":        bool(row["Error_A"]),
                 "error_b":        bool(row["Error_B"]),
