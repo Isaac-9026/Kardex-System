@@ -148,20 +148,35 @@ class KardexService:
         metricas_dict = calcular_metricas(df_filtrado)
         alertas_dict  = procesamiento.alertas or {}
 
+        def calcular_semaforo(m) -> str:
+            """Calcula el semáforo en runtime — no se guarda en BD."""
+            if m.error_a and m.error_b:
+                return "⚫"
+            elif m.error_a:
+                return "🔴"
+            elif m.error_b:
+                return "🟡"
+            return "🟢"
+
+        movimientos_response = [
+            MovimientoResponse(
+                **{c.key: getattr(m, c.key) for c in m.__table__.columns},
+                codigo   = m.producto.codigo if m.producto else None,
+                semaforo = calcular_semaforo(m),
+            )
+            for m in movimientos
+        ]
+
+        errores = sum(1 for r in movimientos_response if r.semaforo != "🟢")
+
         return KardexResponse(
             procesamiento_id   = procesamiento_id,
             codigo             = filtros.codigo or "TODOS",
             total_registros    = len(movimientos),
-            errores_integridad = sum(1 for m in movimientos if m.semaforo != "🟢"),
+            errores_integridad = errores,
             alertas            = AlertasProcesamiento(**alertas_dict),
             metricas           = MetricasKardex(**metricas_dict),
-            movimientos        = [
-                MovimientoResponse(
-                    **{c.key: getattr(m, c.key) for c in m.__table__.columns},
-                    codigo=m.producto.codigo if m.producto else None,
-                )
-                for m in movimientos
-            ],
+            movimientos        = movimientos_response,
         )
 
     # ── Historial de procesamientos ───────────────────────────────────────────
@@ -223,13 +238,10 @@ class KardexService:
                 "orig_ent_costo_total": float(row["Orig_Ent_Costo_Total"]),
                 "orig_sal_costo_unit":  float(row["Orig_Sal_Costo_Unit"]),
                 "orig_sal_costo_total": float(row["Orig_Sal_Costo_Total"]),
-                # Flags de validación
+                # Flags de validación (semáforo NO se guarda en BD)
                 "saldo_negativo": bool(row["Saldo_Negativo"]),
-                "error_a_ent":    bool(row["Error_A_Ent"]),
-                "error_a_sal":    bool(row["Error_A_Sal"]),
-                "error_b_ent":    bool(row["Error_B_Ent"]),
-                "error_b_sal":    bool(row["Error_B_Sal"]),
-                "semaforo":       str(row["Semaforo"]),
+                "error_a":        bool(row["Error_A"]),
+                "error_b":        bool(row["Error_B"]),
             })
 
         await self.movimiento_repo.crear_bulk(registros)

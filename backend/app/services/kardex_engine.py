@@ -8,6 +8,13 @@ from app.schemas.procesamiento import AlertasProcesamiento
 TIPOS_OPERACION_VALIDOS = {"01 venta", "02 compra", "05 devolución recibida"}
 TOLERANCIA = 0.01
 
+# ── Mapeo a valores del ENUM en BD ────────────────────────────────────────────
+TIPO_OP_MAP = {
+    "01 venta":               "01 Venta",
+    "02 compra":              "02 Compra",
+    "05 devolución recibida": "05 Devolucion Recibida",
+}
+
 
 # ── Validación de fila ─────────────────────────────────────────────────────────
 def es_fila_valida(codigo: str, fecha, tipo_op: str) -> bool:
@@ -108,7 +115,7 @@ def parsear_movimientos(file_bytes: bytes, filename: str) -> tuple[pd.DataFrame,
                 "Tipo":                 tipo_comp,
                 "Serie":                serie,
                 "Numero":               numero,
-                "Tipo_Operacion":       tipo_op,
+                "Tipo_Operacion":       TIPO_OP_MAP.get(tipo_op.lower(), tipo_op),
                 "Ent_Cantidad":         ent_cant,
                 "Ent_Costo_Unit":       ent_unit,
                 "Ent_Costo_Total":      ent_total,
@@ -130,7 +137,7 @@ def parsear_movimientos(file_bytes: bytes, filename: str) -> tuple[pd.DataFrame,
         return None, f"Error al leer '{filename}': {str(e)}"
 
 
-# ── Detección de códigos duplicados entre archivos ────────────────────────────
+# ── Detección de códigos duplicados entre archivos
 def detectar_duplicados(frames: dict[str, pd.DataFrame]) -> dict[str, set]:
     """
     Detecta si el mismo código aparece en más de un archivo.
@@ -256,7 +263,7 @@ def calcular_saldo_final(
     return df, alertas
 
 
-# ── Verificación de integridad ────────────────────────────────────────────────
+#Verificación de integridad
 def verificar_integridad(df: pd.DataFrame, tolerancia: float = TOLERANCIA) -> pd.DataFrame:
     """
     Opción A — Compara valores calculados vs originales del Excel.
@@ -269,11 +276,9 @@ def verificar_integridad(df: pd.DataFrame, tolerancia: float = TOLERANCIA) -> pd
         ⚫ Múltiples problemas
     """
     df = df.copy()
-    df["Error_A_Ent"] = False
-    df["Error_A_Sal"] = False
-    df["Error_B_Ent"] = False
-    df["Error_B_Sal"] = False
-    df["Semaforo"]    = "🟢"
+    df["Error_A"]  = False   # calculado vs original
+    df["Error_B"]  = False   # consistencia interna
+    df["Semaforo"] = "🟢"    # calculado en runtime, no se guarda en BD
 
     for idx in df.index:
         tipo_op = str(df.at[idx, "Tipo_Operacion"]).strip().lower()
@@ -287,12 +292,14 @@ def verificar_integridad(df: pd.DataFrame, tolerancia: float = TOLERANCIA) -> pd
             orig_ent  = df.at[idx, "Orig_Ent_Costo_Total"]
             calc_ent  = df.at[idx, "Ent_Costo_Total"]
 
+            # B: consistencia interna
             if ent_cant > 0 and ent_unit > 0:
                 if abs(round(ent_cant * ent_unit, 10) - orig_ent) > tolerancia:
-                    df.at[idx, "Error_B_Ent"] = True
+                    df.at[idx, "Error_B"] = True
 
+            # A: calculado vs original
             if abs(calc_ent - orig_ent) > tolerancia:
-                df.at[idx, "Error_A_Ent"] = True
+                df.at[idx, "Error_A"] = True
 
         if "venta" in tipo_op:
             sal_cant       = df.at[idx, "Sal_Cantidad"]
@@ -301,17 +308,19 @@ def verificar_integridad(df: pd.DataFrame, tolerancia: float = TOLERANCIA) -> pd
             calc_sal_unit  = df.at[idx, "Sal_Costo_Unit"]
             calc_sal_total = df.at[idx, "Sal_Costo_Total"]
 
+            # B: consistencia interna
             if sal_cant > 0 and orig_sal_unit > 0:
                 if abs(round(sal_cant * orig_sal_unit, 10) - orig_sal_total) > tolerancia:
-                    df.at[idx, "Error_B_Sal"] = True
+                    df.at[idx, "Error_B"] = True
 
+            # A: calculado vs original
             if abs(calc_sal_unit  - orig_sal_unit)  > tolerancia:
-                df.at[idx, "Error_A_Sal"] = True
+                df.at[idx, "Error_A"] = True
             if abs(calc_sal_total - orig_sal_total) > tolerancia:
-                df.at[idx, "Error_A_Sal"] = True
+                df.at[idx, "Error_A"] = True
 
-        err_a = df.at[idx, "Error_A_Ent"] or df.at[idx, "Error_A_Sal"]
-        err_b = df.at[idx, "Error_B_Ent"] or df.at[idx, "Error_B_Sal"]
+        err_a = df.at[idx, "Error_A"]
+        err_b = df.at[idx, "Error_B"]
 
         if err_a and err_b:
             df.at[idx, "Semaforo"] = "⚫"
@@ -325,7 +334,7 @@ def verificar_integridad(df: pd.DataFrame, tolerancia: float = TOLERANCIA) -> pd
     return df
 
 
-# ── Cálculo de métricas resumen ───────────────────────────────────────────────
+#Cálculo de métricas resumen
 def calcular_metricas(df: pd.DataFrame) -> dict:
     ultima_fila = df.iloc[-1] if len(df) > 0 else None
     return {

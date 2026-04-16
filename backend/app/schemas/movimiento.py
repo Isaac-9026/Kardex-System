@@ -1,10 +1,7 @@
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.models.producto import Producto
+from typing import Literal, Optional
 
 
 class MovimientoBase(BaseModel):
@@ -30,7 +27,7 @@ class MovimientoResponse(MovimientoBase):
     producto_id:      int
     procesamiento_id: int
 
-    # Código del producto — viene del join con la tabla productos
+    # Código del producto — viene del join con productos
     codigo: Optional[str] = None
 
     # Saldo final calculado
@@ -38,19 +35,19 @@ class MovimientoResponse(MovimientoBase):
     saldo_costo_unit:  Decimal
     saldo_costo_total: Decimal
 
-    # Valores originales del Excel
+    # Valores originales del Excel (auditoría)
     orig_ent_costo_unit:  Decimal
     orig_ent_costo_total: Decimal
     orig_sal_costo_unit:  Decimal
     orig_sal_costo_total: Decimal
 
-    # Flags de validación
+    # Flags de validación consolidados
     saldo_negativo: bool
-    error_a_ent:    bool
-    error_a_sal:    bool
-    error_b_ent:    bool
-    error_b_sal:    bool
-    semaforo:       Literal["🟢", "🟡", "🔴", "⚫"]
+    error_a:        bool   # calculado vs original
+    error_b:        bool   # consistencia interna
+
+    # Semáforo calculado en runtime (no viene de BD)
+    semaforo: Literal["🟢", "🟡", "🔴", "⚫"] = "🟢"
 
     creado_en: datetime
 
