@@ -1,13 +1,19 @@
 from sqlalchemy import (
     ForeignKey, Date, Numeric, SmallInteger, String,
-    Boolean, DateTime, func,
-    CheckConstraint, UniqueConstraint, Enum as SAEnum
+    Boolean, DateTime, func, Enum as SAEnum,
+    CheckConstraint, UniqueConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from datetime import datetime, date
 from decimal import Decimal
 import enum
+
+
+class TipoOperacion(str, enum.Enum):
+    venta       = "01 Venta"
+    compra      = "02 Compra"
+    devolucion  = "05 Devolucion Recibida"
 
 
 class Movimiento(Base):
@@ -31,19 +37,11 @@ class Movimiento(Base):
     tipo_comprobante: Mapped[int]           = mapped_column(SmallInteger,   nullable=False)
     serie:            Mapped[str]           = mapped_column(String(10),     nullable=False)
     numero:           Mapped[str]           = mapped_column(String(20),     nullable=False)
-    
-    # Solucion
-    tipo_operacion: Mapped[str] = mapped_column(
-        SAEnum(
-            "01 Venta",
-            "02 Compra",
-            "05 Devolucion Recibida",
-            name="tipo_operacion_enum",
-            create_type=False  # Le decimos a SQLAlchemy que el Enum ya existe en la BD
-        ),
-        nullable=False,
-        index=True
-    )
+    tipo_operacion:   Mapped[TipoOperacion] = mapped_column(
+                                                SAEnum(TipoOperacion, name="tipo_operacion_enum"),
+                                                nullable=False,
+                                                index=True
+                                            )
 
     # ── Entradas ───────────────────────────────────────────────────────────────
     ent_cantidad:     Mapped[Decimal] = mapped_column(Numeric(18, 6), default=0)

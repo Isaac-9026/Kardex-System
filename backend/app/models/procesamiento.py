@@ -27,5 +27,5 @@ class Procesamiento(Base):
     alertas:               Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     creado_en:             Mapped[datetime]       = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    #Relaciones
+    # ── Relaciones ─────────────────────────────────────────────────────────────
     movimientos: Mapped[list["Movimiento"]] = relationship("Movimiento", back_populates="procesamiento")

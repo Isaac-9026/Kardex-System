@@ -137,7 +137,7 @@ def parsear_movimientos(file_bytes: bytes, filename: str) -> tuple[pd.DataFrame,
         return None, f"Error al leer '{filename}': {str(e)}"
 
 
-# ── Detección de códigos duplicados entre archivos
+# ── Detección de códigos duplicados entre archivos ────────────────────────────
 def detectar_duplicados(frames: dict[str, pd.DataFrame]) -> dict[str, set]:
     """
     Detecta si el mismo código aparece en más de un archivo.
@@ -263,7 +263,7 @@ def calcular_saldo_final(
     return df, alertas
 
 
-#Verificación de integridad
+# ── Verificación de integridad ────────────────────────────────────────────────
 def verificar_integridad(df: pd.DataFrame, tolerancia: float = TOLERANCIA) -> pd.DataFrame:
     """
     Opción A — Compara valores calculados vs originales del Excel.
@@ -334,7 +334,7 @@ def verificar_integridad(df: pd.DataFrame, tolerancia: float = TOLERANCIA) -> pd
     return df
 
 
-#Cálculo de métricas resumen
+# ── Cálculo de métricas resumen ───────────────────────────────────────────────
 def calcular_metricas(df: pd.DataFrame) -> dict:
     ultima_fila = df.iloc[-1] if len(df) > 0 else None
     return {

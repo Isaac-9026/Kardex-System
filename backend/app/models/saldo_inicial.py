@@ -23,5 +23,5 @@ class SaldoInicial(Base):
     costo_total:    Mapped[Decimal] = mapped_column(Numeric(18, 6), nullable=False)
     creado_en:      Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    #Relaciones
+    # ── Relaciones ─────────────────────────────────────────────────────────────
     producto: Mapped["Producto"] = relationship("Producto", back_populates="saldo_inicial")
