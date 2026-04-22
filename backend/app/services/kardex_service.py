@@ -82,7 +82,7 @@ class KardexService:
             len(alertas.saldo_negativo) > 0 or
             int((df_all["Semaforo"] != "🟢").sum()) > 0
         )
-        estado = "con_alertas" if tiene_alertas else "exitoso"
+        estado = "con_alertas" if tiene_alertas else "procesado"
 
         # ── 7. Persistir en BD ────────────────────────────────────────────────
         nombre_archivo = ", ".join([f for f, _ in archivos_mov])
