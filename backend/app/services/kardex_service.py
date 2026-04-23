@@ -49,9 +49,14 @@ class KardexService:
 
         # ── 1. Parsear saldos iniciales ───────────────────────────────────────
         saldos_iniciales = {}
+
         if saldo_bytes:
+            # Si se sube archivo → parsear y persistir en BD (actualiza si ya existe)
             saldos_iniciales = parsear_saldos_iniciales(saldo_bytes)
             await self._persistir_saldos_iniciales(saldos_iniciales)
+        else:
+            # Si NO se sube archivo → cargar desde BD los que ya existen
+            saldos_iniciales = await self._cargar_saldos_desde_bd()
 
         # ── 2. Parsear movimientos ────────────────────────────────────────────
         frames = {}
@@ -185,6 +190,27 @@ class KardexService:
         return [ProcesamientoResumen.model_validate(p) for p in procesamientos]
 
     # ── Helpers privados ──────────────────────────────────────────────────────
+    async def _cargar_saldos_desde_bd(self) -> dict:
+        """
+        Carga todos los saldos iniciales guardados en BD.
+        Retorna dict: { codigo: { cantidad, costo_unitario, costo_total, fecha } }
+        """
+        todos = await self.saldo_repo.get_all()
+        saldos = {}
+
+        for saldo in todos:
+            # Necesitamos el codigo del producto — cargar relacion
+            producto = await self.producto_repo.get_by_id(saldo.producto_id)
+            if producto:
+                saldos[producto.codigo] = {
+                    "fecha":          saldo.fecha,
+                    "cantidad":       float(saldo.cantidad),
+                    "costo_unitario": float(saldo.costo_unitario),
+                    "costo_total":    float(saldo.costo_total),
+                }
+
+        return saldos
+
     async def _persistir_saldos_iniciales(self, saldos: dict) -> None:
         """Guarda o actualiza los saldos iniciales en BD."""
         from datetime import date as date_type

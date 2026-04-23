@@ -14,6 +14,12 @@ class ProductoRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_id(self, producto_id: int) -> Producto | None:
+        result = await self.db.execute(
+            select(Producto).where(Producto.id == producto_id)
+        )
+        return result.scalar_one_or_none()
+
     async def get_or_create(self, codigo: str, descripcion: str | None = None) -> Producto:
         producto = await self.get_by_codigo(codigo)
         if not producto:
