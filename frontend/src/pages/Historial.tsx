@@ -4,7 +4,7 @@ import { getHistorial } from '../services/kardex'
 import type { ProcesamientoResumen, ApiError } from '../types'
 
 const estadoConfig = {
-  exitoso:     { label: 'Exitoso',      color: 'bg-green-100 text-green-700',  icono: '✅' },
+  procesado:     { label: 'Exitoso',      color: 'bg-green-100 text-green-700',  icono: '✅' },
   con_alertas: { label: 'Con alertas',  color: 'bg-yellow-100 text-yellow-700', icono: '⚠️' },
   error:       { label: 'Error',        color: 'bg-red-100 text-red-700',      icono: '❌' },
 }

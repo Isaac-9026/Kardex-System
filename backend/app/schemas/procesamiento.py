@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Literal
+from app.models.procesamiento import EstadoProceso
 
 
 class AlertasProcesamiento(BaseModel):
@@ -14,7 +14,7 @@ class ProcesamientoResponse(BaseModel):
     nombre_archivo:       str
     total_registros:      int
     productos_procesados: int
-    estado:               Literal["pendiente", "procesado", "con_alertas", "error"]
+    estado:               EstadoProceso
     alertas:              AlertasProcesamiento
     creado_en:            datetime
 
@@ -26,7 +26,7 @@ class ProcesamientoResumen(BaseModel):
     nombre_archivo:       str
     total_registros:      int
     productos_procesados: int
-    estado:               Literal["pendiente", "procesado", "con_alertas", "error"]
+    estado:               EstadoProceso
     creado_en:            datetime
 
     model_config = {"from_attributes": True}

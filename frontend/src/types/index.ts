@@ -22,7 +22,7 @@ export interface ProcesamientoResumen {
   nombre_archivo:       string
   total_registros:      number
   productos_procesados: number
-  estado:               'exitoso' | 'con_alertas' | 'error'
+  estado:               'procesado' | 'con_alertas' | 'error'
   creado_en:            string
 }
 
