@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { KardexRow } from "../types";
 
 interface KardexTableProps {
@@ -60,6 +60,30 @@ export default function KardexTable({
 }: KardexTableProps) {
   const [pagina, setPagina] = useState(1);
   const FILAS_POR_PAGINA = 100;
+  const firstErrorRef = useRef<HTMLTableRowElement | null>(null);
+
+  const primerErrorIndex = useMemo(() => {
+    return movimientos.findIndex(
+      (m) => m.error_a || m.error_b || m.saldo_negativo,
+    );
+  }, [movimientos]);
+
+  useEffect(() => {
+    if (primerErrorIndex === -1) return;
+
+    const paginaError = Math.floor(primerErrorIndex / FILAS_POR_PAGINA) + 1;
+
+    setPagina(paginaError);
+  }, [primerErrorIndex]);
+
+  useEffect(() => {
+    if (firstErrorRef.current) {
+      firstErrorRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [pagina]);
 
   const totalPaginas = Math.ceil(movimientos.length / FILAS_POR_PAGINA);
   const filas = useMemo(
@@ -135,7 +159,14 @@ export default function KardexTable({
 
           <tbody className="divide-y divide-gray-100">
             {filas.map((row, i) => {
+              const globalIndex = (pagina - 1) * FILAS_POR_PAGINA + i;
+              const esPrimerError = globalIndex === primerErrorIndex;
+
+              const tieneError =
+                row.error_a || row.error_b || row.saldo_negativo;
+
               const esPar = i % 2 === 0;
+
               const colorFila = mostrarSemaforo
                 ? colorSemaforo[row.semaforo] || (esPar ? "" : "bg-gray-50")
                 : row.saldo_negativo
@@ -146,8 +177,14 @@ export default function KardexTable({
 
               return (
                 <tr
+                  ref={esPrimerError ? firstErrorRef : null}
                   key={row.id}
-                  className={`${colorFila} hover:bg-indigo-50/40 transition-colors`}
+                  className={`
+                    ${colorFila}
+                    ${tieneError ? "border-l-4 border-red-500" : ""}
+                    ${esPrimerError ? "animate-pulse" : ""}
+                   hover:bg-indigo-50/40 transition-colors
+                  `}
                 >
                   {mostrarSemaforo && (
                     <td className={tdClass + " text-center text-base"}>
