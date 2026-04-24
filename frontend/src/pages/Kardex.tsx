@@ -131,6 +131,7 @@ export default function Kardex() {
           <AlertaBanner
             alertas={alertas}
             erroresIntegridad={erroresIntegridad}
+            movimientos={movimientos}
           />
         )}
 

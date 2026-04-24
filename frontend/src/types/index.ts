@@ -80,16 +80,16 @@ export interface Movimiento {
 
 // ── Fila del Kardex (movimiento + saldo calculado + flags) ────────────────────
 export interface KardexRow extends Movimiento {
-  fila:              number
   saldo_cantidad:    number
   saldo_costo_unit:  number
   saldo_costo_total: number
   saldo_negativo:    boolean
-  error_a_ent:       boolean
-  error_a_sal:       boolean
-  error_b_ent:       boolean
-  error_b_sal:       boolean
+
+  error_a:           boolean   // ✅ agregar
+  error_b:           boolean   // ✅ agregar
+
   semaforo:          '🟢' | '🟡' | '🔴' | '⚫'
+  fila:              number    // (si ya lo estás usando)
   creado_en:         string
 }
 

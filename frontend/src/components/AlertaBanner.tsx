@@ -1,25 +1,48 @@
-import type { AlertasProcesamiento } from '../types'
+import type { AlertasProcesamiento, KardexRow } from "../types";
 
 interface AlertaBannerProps {
-  alertas:           AlertasProcesamiento
-  erroresIntegridad: number
+  alertas: AlertasProcesamiento;
+  erroresIntegridad: number;
+  movimientos: KardexRow[];
 }
 
-export default function AlertaBanner({ alertas, erroresIntegridad }: AlertaBannerProps) {
+export default function AlertaBanner({
+  alertas,
+  erroresIntegridad,
+  movimientos,
+}: AlertaBannerProps) {
+  // ── Filas con errores (runtime) ───────────────────────────────
+  const filasErrorA = movimientos.filter((m) => m.error_a).map((m) => m.fila);
+
+  const filasErrorB = movimientos.filter((m) => m.error_b).map((m) => m.fila);
+
+  const filasSaldoNegativo = movimientos
+    .filter((m) => m.saldo_negativo)
+    .map((m) => m.fila);
+
+  // ── Evaluación global de alertas ──────────────────────────────
   const hayAlertas =
     alertas.sin_saldo_inicial.length > 0 ||
-    alertas.saldo_negativo.length    > 0 ||
-    alertas.duplicados.length        > 0 ||
-    erroresIntegridad                > 0
+    alertas.saldo_negativo.length > 0 ||
+    alertas.duplicados.length > 0 ||
+    erroresIntegridad > 0 ||
+    filasErrorA.length > 0 ||
+    filasErrorB.length > 0 ||
+    filasSaldoNegativo.length > 0;
 
   if (!hayAlertas) {
     return (
-      <div className="flex items-center gap-2 bg-green-50 border border-green-200
-                      text-green-800 rounded-xl px-4 py-3 text-sm">
+      <div
+        className="flex items-center gap-2 bg-green-50 border border-green-200
+                      text-green-800 rounded-xl px-4 py-3 text-sm"
+      >
         <span className="text-base">✅</span>
-        <span>Verificación de integridad correcta — todos los registros son consistentes.</span>
+        <span>
+          Verificación de integridad correcta — todos los registros son
+          consistentes.
+        </span>
       </div>
-    )
+    );
   }
 
   return (
@@ -64,28 +87,48 @@ export default function AlertaBanner({ alertas, erroresIntegridad }: AlertaBanne
           descripcion='Activa "Mostrar verificación" en la tabla para ver el detalle.'
         />
       )}
+
+      {/* Detalle por filas (runtime) */}
+      {(filasErrorA.length > 0 || filasErrorB.length > 0) && (
+        <Banner
+          tipo="info"
+          icono="🔍"
+          titulo="Detalle de filas con inconsistencias"
+          descripcion="Estas filas presentan diferencias detectadas en el cálculo."
+          items={[
+            ...(filasErrorA.length > 0
+              ? [`🔴 Error cálculo: ${filasErrorA.join(", ")}`]
+              : []),
+            ...(filasErrorB.length > 0
+              ? [`🟡 Inconsistencia: ${filasErrorB.join(", ")}`]
+              : []),
+          ]}
+        />
+      )}
     </div>
-  )
+  );
 }
 
 // ── Sub-componente Banner ─────────────────────────────────────────────────────
 interface BannerProps {
-  tipo:        'error' | 'warning' | 'info'
-  icono:       string
-  titulo:      string
-  items?:      string[]
-  descripcion?: string
+  tipo: "error" | "warning" | "info";
+  icono: string;
+  titulo: string;
+  items?: string[];
+  descripcion?: string;
 }
 
 function Banner({ tipo, icono, titulo, items, descripcion }: BannerProps) {
   const estilos = {
-    error:   'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    info:    'bg-blue-50 border-blue-200 text-blue-800',
-  }
+    error: "bg-red-50 border-red-200 text-red-800",
+    warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
+    info: "bg-blue-50 border-blue-200 text-blue-800",
+  };
 
   return (
-    <div className={`flex gap-3 border rounded-xl px-4 py-3 text-sm ${estilos[tipo]}`}>
+    <div
+      className={`flex gap-3 border rounded-xl px-4 py-3 text-sm ${estilos[tipo]}`}
+    >
       <span className="text-base shrink-0 mt-0.5">{icono}</span>
       <div className="min-w-0">
         <p className="font-semibold">{titulo}</p>
@@ -107,5 +150,5 @@ function Banner({ tipo, icono, titulo, items, descripcion }: BannerProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
