@@ -80,6 +80,7 @@ export interface Movimiento {
 
 // ── Fila del Kardex (movimiento + saldo calculado + flags) ────────────────────
 export interface KardexRow extends Movimiento {
+  fila:              number
   saldo_cantidad:    number
   saldo_costo_unit:  number
   saldo_costo_total: number

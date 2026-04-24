@@ -49,6 +49,9 @@ class MovimientoResponse(MovimientoBase):
     # Semáforo calculado en runtime (no viene de BD)
     semaforo: Literal["🟢", "🟡", "🔴", "⚫"] = "🟢"
 
+    # Número de fila calculado en runtime (NO persistido)
+    fila: int = 0
+    
     creado_en: datetime
 
     model_config = {"from_attributes": True}

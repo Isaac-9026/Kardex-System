@@ -168,8 +168,9 @@ class KardexService:
                 **{c.key: getattr(m, c.key) for c in m.__table__.columns},
                 codigo   = m.producto.codigo if m.producto else None,
                 semaforo = calcular_semaforo(m),
+                fila     = idx + 1,
             )
-            for m in movimientos
+            for idx, m in enumerate(movimientos)
         ]
 
         errores = sum(1 for r in movimientos_response if r.semaforo != "🟢")
