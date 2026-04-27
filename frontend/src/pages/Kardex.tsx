@@ -1,221 +1,548 @@
-import { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useKardex } from "../hooks/useKardex";
-import KardexTable from "../components/KardexTable";
-import MetricasPanel from "../components/Metricas";
-import AlertaBanner from "../components/AlertaBanner";
-import FiltroCodigo from "../components/FiltroCodigo";
-import FiltroFecha from "../components/FiltroFecha";
-import BadgeProducto from "../components/BadgeProducto";
-import type { FiltroFecha as IFiltroFecha } from "../types";
+import { useEffect, useState, useMemo } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useKardex } from '../hooks/useKardex'
+import KardexTable   from '../components/KardexTable'
+import AlertaBanner  from '../components/AlertaBanner'
+import FiltroCodigo  from '../components/FiltroCodigo'
+import FiltroFecha   from '../components/FiltroFecha'
+import BadgeProducto from '../components/BadgeProducto'
+import type { FiltroFecha as IFiltroFecha } from '../types'
 
+/* ═══════════════════════════ Icons ═══════════════════════════ */
+const IconBox = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+  </svg>
+)
+const IconGrid = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+  </svg>
+)
+const IconUpload = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+)
+const IconHistory = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>
+  </svg>
+)
+const IconList = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+  </svg>
+)
+const IconShield = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+)
+const IconDownload = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+)
+const IconFilter = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+  </svg>
+)
+const IconProducts = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+  </svg>
+)
+const IconSaldos = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+  </svg>
+)
+const IconSpinner = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ animation: 'kspin 1s linear infinite' }}>
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/>
+    <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+    <style>{`@keyframes kspin{to{transform:rotate(360deg)}}`}</style>
+  </svg>
+)
+
+/* ═══════════════════════════ Sidebar ═══════════════════════════ */
+const SIDEBAR_W = 158
+
+interface SidebarProps {
+  id: number
+  onNavigate: (path: string) => void
+  currentPath: string
+}
+
+const Sidebar = ({ id, onNavigate, currentPath }: SidebarProps) => {
+  const navItem = (
+    label: string,
+    icon: React.ReactNode,
+    path: string,
+    active: boolean,
+    dot?: string,
+  ) => (
+    <button
+      type="button"
+      onClick={() => onNavigate(path)}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+        padding: '6px 10px', borderRadius: 6, border: 'none',
+        background: active ? 'rgba(56,139,221,0.15)' : 'transparent',
+        color: active ? '#60a5fa' : '#4a6a8a',
+        fontSize: 12, fontWeight: active ? 600 : 400,
+        cursor: 'pointer', fontFamily: 'inherit',
+        textAlign: 'left' as const,
+        transition: 'background .12s, color .12s',
+      }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+    >
+      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: dot, flexShrink: 0 }} />}
+      {!dot && <span style={{ color: active ? '#60a5fa' : '#3a5a7a', flexShrink: 0 }}>{icon}</span>}
+      {label}
+      {active && <span style={{ marginLeft: 'auto', width: 3, height: 14, background: '#3b82f6', borderRadius: 2, flexShrink: 0 }} />}
+    </button>
+  )
+
+  return (
+    <aside style={{
+      width: SIDEBAR_W, flexShrink: 0,
+      background: '#080e1c',
+      borderRight: '1px solid rgba(56,139,221,0.1)',
+      display: 'flex', flexDirection: 'column',
+      padding: '12px 10px',
+      gap: 0, overflow: 'hidden',
+    }}>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 4px 16px' }}>
+        <div style={{
+          width: 26, height: 26, borderRadius: 7,
+          background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', flexShrink: 0,
+        }}>
+          <IconBox />
+        </div>
+        <div>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 700, color: '#e2e8f0', letterSpacing: '.08em' }}>KARDEX</div>
+          <div style={{ fontSize: 9, color: '#2a4a6a', letterSpacing: '.1em' }}>Sistema CPP</div>
+        </div>
+      </div>
+
+      {/* Principal */}
+      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.15em', color: '#1e3a5a', textTransform: 'uppercase' as const, padding: '6px 10px 4px', marginBottom: 2 }}>
+        Principal
+      </div>
+      {navItem('Dashboard',  <IconGrid />,    `/kardex/${id}`,   currentPath === `/kardex/${id}`,   '#3b82f6')}
+      {navItem('Procesar',   <IconUpload />,  '/',               currentPath === '/')}
+      {navItem('Actividad',  <IconHistory />, '/historial',      currentPath === '/historial')}
+
+      <div style={{ height: 1, background: 'rgba(56,139,221,0.08)', margin: '10px 0' }} />
+
+      {/* Análisis */}
+      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.15em', color: '#1e3a5a', textTransform: 'uppercase' as const, padding: '6px 10px 4px', marginBottom: 2 }}>
+        Análisis
+      </div>
+      {navItem('Movimientos',   <IconList />,     `/kardex/${id}`,   true)}
+      {navItem('Verificación',  <IconShield />,   `/kardex/${id}`,   false)}
+      {navItem('Exportar',      <IconDownload />, `/kardex/${id}`,   false)}
+
+      <div style={{ height: 1, background: 'rgba(56,139,221,0.08)', margin: '10px 0' }} />
+
+      {/* Sistema */}
+      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.15em', color: '#1e3a5a', textTransform: 'uppercase' as const, padding: '6px 10px 4px', marginBottom: 2 }}>
+        Sistema
+      </div>
+      {navItem('Saldos',    <IconSaldos />,   `/kardex/${id}`, false)}
+      {navItem('Productos', <IconProducts />, `/kardex/${id}`, false)}
+    </aside>
+  )
+}
+
+/* ═══════════════════════════ Mini sparkline SVG ═══════════════════════════ */
+const Sparkline = ({ color }: { color: string }) => {
+  const pts = [20, 35, 28, 50, 42, 60, 55, 70, 65, 80, 72, 88]
+  const w = 90, h = 36
+  const max = Math.max(...pts), min = Math.min(...pts)
+  const xs = pts.map((_, i) => (i / (pts.length - 1)) * w)
+  const ys = pts.map(p => h - ((p - min) / (max - min)) * h * 0.8 - h * 0.1)
+  const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ')
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ opacity: 0.6 }}>
+      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+/* ═══════════════════════════ MetricCard ═══════════════════════════ */
+interface MetricCardProps {
+  label: string
+  value: string
+  sub: string
+  color: string
+  sparkColor: string
+  borderColor: string
+}
+
+const MetricCard = ({ label, value, sub, color, sparkColor, borderColor }: MetricCardProps) => (
+  <div style={{
+    flex: 1,
+    background: '#0d1525',
+    border: `1px solid ${borderColor}`,
+    borderRadius: 10,
+    padding: '14px 16px',
+    display: 'flex', flexDirection: 'column', gap: 2,
+    position: 'relative' as const, overflow: 'hidden',
+    minWidth: 0,
+  }}>
+    <p style={{
+      fontSize: 9, fontWeight: 700, letterSpacing: '.16em',
+      textTransform: 'uppercase' as const, color: '#2a4a6a',
+      fontFamily: "'IBM Plex Mono', monospace",
+    }}>
+      {label}
+    </p>
+    <p style={{
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: 26, fontWeight: 800,
+      color, lineHeight: 1, marginTop: 2,
+      letterSpacing: '-.01em',
+    }}>
+      {value}
+    </p>
+    <p style={{
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: 10, color: '#1e3a5a', marginTop: 2,
+    }}>
+      {sub}
+    </p>
+    <div style={{ position: 'absolute', right: 8, bottom: 8 }}>
+      <Sparkline color={sparkColor} />
+    </div>
+  </div>
+)
+
+/* ═══════════════════════════ Page ═══════════════════════════ */
 export default function Kardex() {
-  const { procesamiento_id } = useParams<{ procesamiento_id: string }>();
-  const navigate = useNavigate();
+  const { procesamiento_id } = useParams<{ procesamiento_id: string }>()
+  const navigate             = useNavigate()
+  const location             = useLocation()
+
   const {
-    movimientos,
-    metricas,
-    alertas,
-    loading,
-    error,
-    exporting,
-    totalRegistros,
-    erroresIntegridad,
-    cargarKardex,
-    descargarExcel,
-  } = useKardex();
+    movimientos, metricas, alertas,
+    loading, error, exporting,
+    totalRegistros, erroresIntegridad,
+    cargarKardex, descargarExcel,
+  } = useKardex()
 
-  const [codigo, setCodigo] = useState("");
-  const [filtroFecha, setFiltroFecha] = useState<IFiltroFecha>({
-    modo: "anio_mes",
-  });
-  const [mostrarSemaforo, setMostrarSemaforo] = useState(false);
-  const [mostrarSoloErrores, setMostrarSoloErrores] = useState(false);
+  const [codigo,          setCodigo]          = useState('')
+  const [filtroFecha,     setFiltroFecha]     = useState<IFiltroFecha>({ modo: 'anio_mes' })
+  const [mostrarSemaforo, setMostrarSemaforo] = useState(false)
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(true)
 
-  const id = Number(procesamiento_id);
+  const id = Number(procesamiento_id)
 
-  // Carga inicial
   useEffect(() => {
-    if (!id) return;
-    cargarKardex(id);
-  }, [id]);
-
-  // Aplicar filtros
-  const aplicarFiltros = (nuevoCodigo?: string) => {
-    const cod = nuevoCodigo !== undefined ? nuevoCodigo : codigo;
-    cargarKardex(id, { ...filtroFecha, codigo: cod || undefined });
-  };
+    if (!id) return
+    cargarKardex(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   const handleBuscarCodigo = (cod: string) => {
-    setCodigo(cod);
-    cargarKardex(id, { ...filtroFecha, codigo: cod || undefined });
-  };
-
+    setCodigo(cod)
+    cargarKardex(id, { ...filtroFecha, codigo: cod || undefined })
+  }
   const handleCambiarFecha = (nuevoFiltro: IFiltroFecha) => {
-    setFiltroFecha(nuevoFiltro);
-    cargarKardex(id, { ...nuevoFiltro, codigo: codigo || undefined });
-  };
+    setFiltroFecha(nuevoFiltro)
+    cargarKardex(id, { ...nuevoFiltro, codigo: codigo || undefined })
+  }
+  const handleExportar = () =>
+    descargarExcel(codigo || undefined, filtroFecha.fecha_desde, filtroFecha.fecha_hasta)
 
-  const handleExportar = () => {
-    descargarExcel(
-      codigo || undefined,
-      filtroFecha.fecha_desde,
-      filtroFecha.fecha_hasta,
-    );
-  };
-
-  // Códigos únicos visibles en la tabla
   const codigosVisibles = useMemo(() => {
-    const set = new Set(movimientos.map((m) => m.codigo).filter(Boolean));
-    return Array.from(set) as string[];
-  }, [movimientos]);
+    const set = new Set(movimientos.map(m => m.codigo).filter(Boolean))
+    return Array.from(set) as string[]
+  }, [movimientos])
 
-  const movimientosFiltrados = useMemo(() => {
-    if (!mostrarSoloErrores) return movimientos;
+  const fmt  = (n: number) => n.toLocaleString('es-PE', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+  const fmtS = (n: number) => `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-    return movimientos.filter(
-      (m) => m.error_a || m.error_b || m.saldo_negativo,
-    );
-  }, [movimientos, mostrarSoloErrores]);
+  if (!id) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07101e', color: '#2a4a6a', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
+      ID de procesamiento inválido.
+    </div>
+  )
 
-  if (!id) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        ID de procesamiento inválido.
-      </div>
-    );
+  /* ── shared token ── */
+  const btnBase: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '6px 12px', borderRadius: 7,
+    fontSize: 11, fontWeight: 600,
+    fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+    transition: 'opacity .12s',
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-800 to-indigo-600 text-white px-6 py-4 shadow">
-        <div className="max-w-screen-xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="text-indigo-200 hover:text-white transition-colors text-sm"
-            >
-              ← Volver
-            </button>
-            <div>
-              <h1 className="text-lg font-bold">
-                📊 Kardex — Procesamiento #{id}
-              </h1>
-              <p className="text-indigo-200 text-xs">
-                {totalRegistros.toLocaleString("es-PE")} registros
-                {erroresIntegridad > 0 && (
-                  <span className="ml-2 text-yellow-300">
-                    · {erroresIntegridad} anomalía(s)
-                  </span>
-                )}
-              </p>
-            </div>
+    <div style={{
+      minHeight: '100vh', display: 'flex',
+      background: '#07101e',
+      fontFamily: "'Inter', -apple-system, sans-serif",
+      color: '#c8ddef',
+    }}>
+
+      {/* ── SIDEBAR ── */}
+      <Sidebar id={id} onNavigate={navigate} currentPath={location.pathname} />
+
+      {/* ── RIGHT PANEL ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+
+        {/* ── TOPBAR ── */}
+        <header style={{
+          height: 52, flexShrink: 0,
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 20px',
+          borderBottom: '1px solid rgba(56,139,221,0.1)',
+          background: '#080e1c',
+          gap: 12,
+          position: 'sticky' as const, top: 0, zIndex: 30,
+        }}>
+          {/* Title */}
+          <div>
+            <h1 style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: 18, fontWeight: 700,
+              color: '#e2e8f0', margin: 0, lineHeight: 1,
+              letterSpacing: '-.01em',
+            }}>
+              Kardex{' '}
+              <span style={{ color: '#2563eb' }}>#{id}</span>
+            </h1>
+            <p style={{ fontSize: 11, color: '#1e3a5a', marginTop: 3 }}>
+              {totalRegistros.toLocaleString('es-PE')} registros cargados
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Toggle semáforo */}
+          {/* Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {erroresIntegridad > 0 && (
+              <span style={{
+                ...btnBase,
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                color: '#fbbf24', cursor: 'default',
+              }}>
+                ⚠ {erroresIntegridad} anomalía{erroresIntegridad > 1 ? 's' : ''}
+              </span>
+            )}
             <button
-              onClick={() => setMostrarSemaforo((v) => !v)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                mostrarSemaforo
-                  ? "bg-white text-indigo-700"
-                  : "bg-indigo-700 text-indigo-200 hover:bg-indigo-600"
-              }`}
+              type="button"
+              onClick={() => setFiltrosAbiertos(v => !v)}
+              style={{
+                ...btnBase,
+                background: filtrosAbiertos ? 'rgba(56,139,221,0.15)' : 'rgba(56,139,221,0.06)',
+                border: filtrosAbiertos ? '1px solid rgba(56,139,221,0.35)' : '1px solid rgba(56,139,221,0.14)',
+                color: filtrosAbiertos ? '#60a5fa' : '#2a5a8a',
+              }}
             >
-              🔍 Verificación
+              <IconFilter /> Filtros
             </button>
-
             <button
-              onClick={() => setMostrarSoloErrores((v) => !v)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                mostrarSoloErrores
-                  ? "bg-red-500 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
+              type="button"
+              onClick={() => setMostrarSemaforo(v => !v)}
+              style={{
+                ...btnBase,
+                background: mostrarSemaforo ? 'rgba(245,158,11,0.12)' : 'rgba(56,139,221,0.06)',
+                border: mostrarSemaforo ? '1px solid rgba(245,158,11,0.28)' : '1px solid rgba(56,139,221,0.14)',
+                color: mostrarSemaforo ? '#fbbf24' : '#2a5a8a',
+              }}
             >
-              🚨 Solo errores
+              <IconShield /> Verificación
             </button>
-
-            {/* Exportar */}
             <button
+              type="button"
               onClick={handleExportar}
               disabled={exporting || movimientos.length === 0}
-              className="px-3 py-1.5 bg-green-500 hover:bg-green-400 text-white
-                         rounded-lg text-sm font-medium transition-colors
-                         disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              style={{
+                ...btnBase,
+                background: 'linear-gradient(135deg,#1d4ed8,#1e3a8a)',
+                border: 'none',
+                color: '#e2e8f0',
+                boxShadow: '0 2px 10px rgba(29,78,216,0.4)',
+                opacity: (exporting || movimientos.length === 0) ? 0.4 : 1,
+                cursor: (exporting || movimientos.length === 0) ? 'not-allowed' : 'pointer',
+              }}
             >
-              {exporting ? <span className="animate-spin">⏳</span> : "⬇️"}
+              {exporting ? <IconSpinner /> : <IconDownload />}
               Exportar Excel
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Contenido */}
-      <main className="max-w-screen-xl mx-auto px-4 py-6 space-y-5">
-        {/* Alertas */}
-        {alertas && (
-          <AlertaBanner
-            alertas={alertas}
-            erroresIntegridad={erroresIntegridad}
-            movimientos={movimientos}
-          />
-        )}
+        {/* ── SCROLLABLE CONTENT ── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        {/* Métricas */}
-        {metricas && <MetricasPanel metricas={metricas} />}
+          {/* Alertas */}
+          {alertas && <AlertaBanner alertas={alertas} erroresIntegridad={erroresIntegridad} />}
 
-        {/* Filtros */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700">🔎 Filtros</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FiltroCodigo onBuscar={handleBuscarCodigo} disabled={loading} />
-            <FiltroFecha
-              filtro={filtroFecha}
-              onChange={handleCambiarFecha}
-              disabled={loading}
-            />
-          </div>
-        </div>
-
-        {/* Badges */}
-        {codigosVisibles.length > 0 && (
-          <BadgeProducto codigos={codigosVisibles} />
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 text-sm">
-            ❌ {error}
-          </div>
-        )}
-
-        {/* Tabla */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">
-              📋 Movimientos
-              <span className="ml-2 text-gray-400 font-normal">
-                ({movimientosFiltrados.length.toLocaleString("es-PE")} registros)
-              </span>
-            </h2>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
-              <span className="animate-spin text-xl">⏳</span>
-              <span className="text-sm">Cargando movimientos...</span>
+          {/* ── Métricas ── */}
+          {metricas && (
+            <div style={{ display: 'flex', gap: 12 }}>
+              <MetricCard
+                label="Total registros"
+                value={totalRegistros.toLocaleString('es-PE')}
+                sub="movimientos"
+                color="#c8ddef"
+                sparkColor="#3b82f6"
+                borderColor="rgba(56,139,221,0.15)"
+              />
+              <MetricCard
+                label="Total entradas"
+                value={fmt(metricas.total_ent_cantidad)}
+                sub={fmtS(metricas.total_ent_costo)}
+                color="#3b82f6"
+                sparkColor="#3b82f6"
+                borderColor="rgba(59,130,246,0.25)"
+              />
+              <MetricCard
+                label="Total salidas"
+                value={fmt(metricas.total_sal_cantidad)}
+                sub={fmtS(metricas.total_sal_costo)}
+                color="#f87171"
+                sparkColor="#ef4444"
+                borderColor="rgba(239,68,68,0.25)"
+              />
+              <MetricCard
+                label="Saldo final"
+                value={fmt(metricas.saldo_final_cantidad)}
+                sub={fmtS(metricas.saldo_final_costo)}
+                color="#fbbf24"
+                sparkColor="#f59e0b"
+                borderColor="rgba(245,158,11,0.25)"
+              />
             </div>
-          ) : (
-            <KardexTable
-              movimientos={movimientosFiltrados}
-              mostrarSemaforo={mostrarSemaforo}
-            />
           )}
+
+          {/* ── Filtros ── */}
+          {filtrosAbiertos && (
+            <div style={{
+              background: '#0d1525',
+              border: '1px solid rgba(56,139,221,0.12)',
+              borderRadius: 10, padding: '12px 14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 2, height: 12, background: '#3b82f6', borderRadius: 2 }} />
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase' as const, color: '#1e3a5a', fontFamily: "'IBM Plex Mono', monospace" }}>
+                  Filtrar registros
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <FiltroCodigo onBuscar={handleBuscarCodigo} disabled={loading} />
+                <FiltroFecha  filtro={filtroFecha} onChange={handleCambiarFecha} disabled={loading} />
+              </div>
+            </div>
+          )}
+
+          {/* ── Badges ── */}
+          {codigosVisibles.length > 0 && (
+            <BadgeProducto codigos={codigosVisibles} />
+          )}
+
+          {/* ── Error ── */}
+          {error && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: 8, padding: '10px 14px',
+              fontSize: 12, color: '#fca5a5',
+              fontFamily: "'IBM Plex Mono', monospace",
+            }}>
+              ✕ {error}
+            </div>
+          )}
+
+          {/* ── Tabla ── */}
+          <div style={{
+            background: '#0d1525',
+            border: '1px solid rgba(56,139,221,0.1)',
+            borderRadius: 10, overflow: 'hidden',
+          }}>
+            {/* Toolbar */}
+            <div style={{
+              padding: '10px 14px',
+              borderBottom: '1px solid rgba(56,139,221,0.08)',
+              background: 'rgba(56,139,221,0.03)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 2, height: 12, background: '#3b82f6', borderRadius: 2 }} />
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase' as const, color: '#1e3a5a', fontFamily: "'IBM Plex Mono', monospace" }}>
+                  Movimientos
+                </span>
+                <span style={{
+                  fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
+                  padding: '1px 8px', borderRadius: 20,
+                  background: 'rgba(59,130,246,0.15)',
+                  border: '1px solid rgba(59,130,246,0.25)',
+                  color: '#60a5fa',
+                }}>
+                  {movimientos.length.toLocaleString('es-PE')}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                {mostrarSemaforo && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 10, color: '#1e3a5a' }}>
+                    {[
+                      { color: '#22c55e', label: 'OK' },
+                      { color: '#f59e0b', label: 'Error B' },
+                      { color: '#ef4444', label: 'Error A' },
+                    ].map(item => (
+                      <span key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: item.color, display: 'inline-block' }} />
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                  <span style={{ fontSize: 10, color: '#1e3a5a' }}>En línea</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '56px 0', gap: 10, color: '#1e3a5a' }}>
+                <IconSpinner />
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>Cargando movimientos...</span>
+              </div>
+            ) : (
+              <KardexTable movimientos={movimientos} mostrarSemaforo={mostrarSemaforo} />
+            )}
+
+            {/* Footer */}
+            {movimientos.length > 0 && (
+              <div style={{
+                padding: '7px 14px',
+                borderTop: '1px solid rgba(56,139,221,0.08)',
+                background: 'rgba(56,139,221,0.02)',
+              }}>
+                <p style={{ fontSize: 10, fontFamily: "'IBM Plex Mono', monospace", color: '#1e3a5a' }}>
+                  Mostrando {movimientos.length.toLocaleString('es-PE')} de {totalRegistros.toLocaleString('es-PE')} registros
+                </p>
+              </div>
+            )}
+          </div>
+
         </div>
-      </main>
+      </div>
     </div>
-  );
+  )
 }
