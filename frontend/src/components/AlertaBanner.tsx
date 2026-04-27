@@ -1,53 +1,29 @@
-import type { AlertasProcesamiento, KardexRow } from "../types";
+import type { AlertasProcesamiento } from '../types'
 
 interface AlertaBannerProps {
-  alertas: AlertasProcesamiento;
-  erroresIntegridad: number;
-  movimientos: KardexRow[];
+  alertas:           AlertasProcesamiento
+  erroresIntegridad: number
 }
 
-export default function AlertaBanner({
-  alertas,
-  erroresIntegridad,
-  movimientos,
-}: AlertaBannerProps) {
-  // ── Filas con errores (runtime) ───────────────────────────────
-  const filasErrorA = movimientos.filter((m) => m.error_a).map((m) => m.fila);
-
-  const filasErrorB = movimientos.filter((m) => m.error_b).map((m) => m.fila);
-
-  const filasSaldoNegativo = movimientos
-    .filter((m) => m.saldo_negativo)
-    .map((m) => m.fila);
-
-  // ── Evaluación global de alertas ──────────────────────────────
+export default function AlertaBanner({ alertas, erroresIntegridad }: AlertaBannerProps) {
   const hayAlertas =
     alertas.sin_saldo_inicial.length > 0 ||
-    alertas.saldo_negativo.length > 0 ||
-    alertas.duplicados.length > 0 ||
-    erroresIntegridad > 0 ||
-    filasErrorA.length > 0 ||
-    filasErrorB.length > 0 ||
-    filasSaldoNegativo.length > 0;
+    alertas.saldo_negativo.length    > 0 ||
+    alertas.duplicados.length        > 0 ||
+    erroresIntegridad                > 0
 
   if (!hayAlertas) {
     return (
-      <div
-        className="flex items-center gap-2 bg-green-50 border border-green-200
-                      text-green-800 rounded-xl px-4 py-3 text-sm"
-      >
+      <div className="flex items-center gap-2 bg-green-50 border border-green-200
+                      text-green-800 rounded-xl px-4 py-3 text-sm">
         <span className="text-base">✅</span>
-        <span>
-          Verificación de integridad correcta — todos los registros son
-          consistentes.
-        </span>
+        <span>Verificación de integridad correcta — todos los registros son consistentes.</span>
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-2">
-      {/* Duplicados — error crítico */}
       {alertas.duplicados.length > 0 && (
         <Banner
           tipo="error"
@@ -57,28 +33,28 @@ export default function AlertaBanner({
         />
       )}
 
-      {/* Saldo negativo */}
       {alertas.saldo_negativo.length > 0 && (
         <Banner
           tipo="error"
           icono="❌"
           titulo={`Saldo negativo detectado en ${alertas.saldo_negativo.length} producto(s)`}
           items={alertas.saldo_negativo}
-          descripcion="Hay más salidas que stock disponible. Filas afectadas en rojo."
+          descripcion="Hay más salidas que stock disponible. Haz clic en una fila para ir a ella."
+          clickeable
         />
       )}
 
-      {/* Sin saldo inicial */}
       {alertas.sin_saldo_inicial.length > 0 && (
         <Banner
           tipo="warning"
           icono="⚠️"
           titulo="Productos sin saldo inicial (calculados desde cero)"
           items={alertas.sin_saldo_inicial}
+          descripcion="Haz clic en un código para ir a la primera fila afectada."
+          clickeable
         />
       )}
 
-      {/* Errores de integridad */}
       {erroresIntegridad > 0 && (
         <Banner
           tipo="warning"
@@ -87,68 +63,66 @@ export default function AlertaBanner({
           descripcion='Activa "Mostrar verificación" en la tabla para ver el detalle.'
         />
       )}
-
-      {/* Detalle por filas (runtime) */}
-      {(filasErrorA.length > 0 || filasErrorB.length > 0) && (
-        <Banner
-          tipo="info"
-          icono="🔍"
-          titulo="Detalle de filas con inconsistencias"
-          descripcion="Estas filas presentan diferencias detectadas en el cálculo."
-          items={[
-            ...(filasErrorA.length > 0
-              ? [`🔴 Error cálculo: ${filasErrorA.join(", ")}`]
-              : []),
-            ...(filasErrorB.length > 0
-              ? [`🟡 Inconsistencia: ${filasErrorB.join(", ")}`]
-              : []),
-          ]}
-        />
-      )}
     </div>
-  );
+  )
 }
 
-// ── Sub-componente Banner ─────────────────────────────────────────────────────
+// ── Sub-componente Banner ────────────────────────────────────────────────────
 interface BannerProps {
-  tipo: "error" | "warning" | "info";
-  icono: string;
-  titulo: string;
-  items?: string[];
-  descripcion?: string;
+  tipo:         'error' | 'warning' | 'info'
+  icono:        string
+  titulo:       string
+  items?:       string[]
+  descripcion?: string
+  clickeable?:  boolean
 }
 
-function Banner({ tipo, icono, titulo, items, descripcion }: BannerProps) {
+function Banner({ tipo, icono, titulo, items, descripcion, clickeable }: BannerProps) {
   const estilos = {
-    error: "bg-red-50 border-red-200 text-red-800",
-    warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
-    info: "bg-blue-50 border-blue-200 text-blue-800",
-  };
+    error:   'bg-red-50 border-red-200 text-red-800',
+    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+    info:    'bg-blue-50 border-blue-200 text-blue-800',
+  }
+
+  const irAFila = (codigo: string) => {
+    // Llama a la función expuesta por KardexTable en window
+    const fn = (window as any).__kardexIrAFila
+    if (typeof fn === 'function') fn(codigo)
+  }
 
   return (
-    <div
-      className={`flex gap-3 border rounded-xl px-4 py-3 text-sm ${estilos[tipo]}`}
-    >
+    <div className={`flex gap-3 border rounded-xl px-4 py-3 text-sm ${estilos[tipo]}`}>
       <span className="text-base shrink-0 mt-0.5">{icono}</span>
       <div className="min-w-0">
         <p className="font-semibold">{titulo}</p>
         {descripcion && (
-          <p className="text-xs mt-0.5 opacity-80">{descripcion}</p>
+          <p className="text-xs mt-0.5 opacity-75">{descripcion}</p>
         )}
         {items && items.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {items.map((item) => (
               <span
                 key={item}
-                className="inline-block bg-white bg-opacity-60 border
-                           border-current rounded-full px-2 py-0.5 text-xs font-mono"
+                onClick={clickeable ? () => irAFila(item) : undefined}
+                title={clickeable ? 'Clic para ir a la fila' : undefined}
+                className={[
+                  'inline-block bg-white bg-opacity-60 border border-current',
+                  'rounded-full px-2 py-0.5 text-xs font-mono',
+                  'select-none',
+                  clickeable
+                    ? 'cursor-pointer hover:bg-opacity-90 hover:scale-105 transition-transform active:scale-95'
+                    : '',
+                ].join(' ')}
               >
                 {item}
+                {clickeable && (
+                  <span className="ml-1 opacity-50" style={{ fontSize: 9 }}>↓</span>
+                )}
               </span>
             ))}
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }
