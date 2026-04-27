@@ -7,233 +7,163 @@ interface KardexTableProps {
 }
 
 const fmtCant = (n: number) =>
-  new Intl.NumberFormat("es-PE", {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(n);
+  new Intl.NumberFormat("es-PE", { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(n);
 
 const fmtUnit = (n: number) =>
-  new Intl.NumberFormat("es-PE", {
-    minimumFractionDigits: 5,
-    maximumFractionDigits: 5,
-  }).format(n);
+  new Intl.NumberFormat("es-PE", { minimumFractionDigits: 5, maximumFractionDigits: 5 }).format(n);
 
 const fmtTotal = (n: number) =>
-  new Intl.NumberFormat("es-PE", {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(n);
+  new Intl.NumberFormat("es-PE", { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(n);
 
 const fmtFecha = (fecha: string) => {
   try {
-    return new Date(fecha + "T00:00:00").toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return new Date(fecha + "T00:00:00").toLocaleDateString("es-PE");
   } catch {
     return fecha;
   }
 };
 
-const colorSemaforo: Record<string, string> = {
-  "🔴": "bg-red-50",
-  "🟡": "bg-yellow-50",
-  "⚫": "bg-purple-50",
-  "🟢": "",
+const FILAS_POR_PAGINA = 100;
+
+// 🎯 mapa de color según TU lógica
+const getSemaforo = (row: KardexRow) => {
+  if (row.saldo_negativo) return "🔴";
+  if (row.error_a || row.error_b) return "🟡";
+  return "🟢";
 };
 
-const COLS_GRUPOS = [
-  { label: "", span: 2 },
-  { label: "COMPROBANTE", span: 4 },
-  { label: "TIPO OPERACIÓN", span: 1 },
-  { label: "ENTRADAS", span: 3 },
-  { label: "SALIDAS", span: 3 },
-  { label: "SALDO FINAL", span: 3 },
-];
-
-const COLS_GRUPOS_SEM = [{ label: "EST.", span: 1 }, ...COLS_GRUPOS];
-
-export default function KardexTable({
-  movimientos,
-  mostrarSemaforo = false,
-}: KardexTableProps) {
+export default function KardexTable({ movimientos, mostrarSemaforo = false }: KardexTableProps) {
   const [pagina, setPagina] = useState(1);
-  const FILAS_POR_PAGINA = 100;
   const firstErrorRef = useRef<HTMLTableRowElement | null>(null);
 
   const primerErrorIndex = useMemo(() => {
     return movimientos.findIndex(
-      (m) => m.error_a || m.error_b || m.saldo_negativo,
+      (m) => m.error_a || m.error_b || m.saldo_negativo
     );
   }, [movimientos]);
 
   useEffect(() => {
     if (primerErrorIndex === -1) return;
-
     const paginaError = Math.floor(primerErrorIndex / FILAS_POR_PAGINA) + 1;
-
     setPagina(paginaError);
   }, [primerErrorIndex]);
 
   useEffect(() => {
     if (firstErrorRef.current) {
-      firstErrorRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
+      firstErrorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [pagina]);
 
   const totalPaginas = Math.ceil(movimientos.length / FILAS_POR_PAGINA);
-  const filas = useMemo(
-    () =>
-      movimientos.slice(
-        (pagina - 1) * FILAS_POR_PAGINA,
-        pagina * FILAS_POR_PAGINA,
-      ),
-    [movimientos, pagina],
-  );
+
+  const filas = useMemo(() => {
+    return movimientos.slice(
+      (pagina - 1) * FILAS_POR_PAGINA,
+      pagina * FILAS_POR_PAGINA
+    );
+  }, [movimientos, pagina]);
 
   if (movimientos.length === 0) {
-    return (
-      <div className="text-center py-16 text-gray-400 text-sm">
-        No hay movimientos para mostrar.
-      </div>
-    );
+    return <div style={{ padding: 40, textAlign: "center", color: "#2a5080" }}>Sin datos</div>;
   }
 
-  const grupos = mostrarSemaforo ? COLS_GRUPOS_SEM : COLS_GRUPOS;
-
   return (
-    <div className="space-y-2">
-      {/* Leyenda semáforo */}
-      {mostrarSemaforo && (
-        <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-          <span>🟢 Correcto</span>
-          <span>🟡 Inconsistencia interna</span>
-          <span>🔴 Difiere del calculado</span>
-          <span>⚫ Múltiples problemas</span>
-        </div>
-      )}
+    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{
+          borderCollapse: "separate",
+          borderSpacing: 0,
+          fontSize: 11,
+          tableLayout: "fixed",
+          minWidth: 1200
+        }}>
 
-      {/* Tabla */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="min-w-full text-xs">
+          {/* HEADER GRUPOS */}
           <thead>
-            {/* Fila 1: grupos */}
             <tr>
-              {grupos.map((g, i) => (
-                <th
-                  key={i}
-                  colSpan={g.span}
-                  className="bg-indigo-700 text-white font-semibold text-center
-                             px-2 py-2 border-r border-indigo-600 last:border-r-0"
-                >
-                  {g.label}
-                </th>
-              ))}
+              {mostrarSemaforo && <th style={thDark}></th>}
+              <th style={thDark}></th>
+              <th style={thDark}></th>
+
+              <th colSpan={4} style={{ ...thGrupo, background: "#185FA5" }}>Comprobante</th>
+              <th style={{ ...thGrupo, background: "#0F6E56" }}>Tipo operación</th>
+              <th colSpan={3} style={{ ...thGrupo, background: "#0B5E3A" }}>Entradas</th>
+              <th colSpan={3} style={{ ...thGrupo, background: "#7A2020" }}>Salidas</th>
+              <th colSpan={3} style={{ ...thGrupo, background: "#1A3A5C" }}>Saldo final</th>
             </tr>
 
-            {/* Fila 2: columnas */}
-            <tr className="bg-indigo-50 text-indigo-800 font-semibold">
-              {mostrarSemaforo && <th className={thClass}>Est.</th>}
-              <th className={thClass}>#</th>
-              <th className={thClass}>Código</th>
-              <th className={thClass}>Fecha</th>
-              <th className={thClass}>Tipo</th>
-              <th className={thClass}>Serie</th>
-              <th className={thClass}>Número</th>
-              <th className={thClass}>Operación</th>
-              <th className={thClass + " text-right"}>Cant.</th>
-              <th className={thClass + " text-right"}>C.Unit</th>
-              <th className={thClass + " text-right"}>C.Total</th>
-              <th className={thClass + " text-right"}>Cant.</th>
-              <th className={thClass + " text-right"}>C.Unit</th>
-              <th className={thClass + " text-right"}>C.Total</th>
-              <th className={thClass + " text-right"}>Cant.</th>
-              <th className={thClass + " text-right"}>C.Unit</th>
-              <th className={thClass + " text-right"}>C.Total</th>
+            <tr style={{ background: "#0a1929" }}>
+              {mostrarSemaforo && <th style={thSub}>Est</th>}
+              <th style={thSub}>#</th>
+              <th style={thSub}>Cód.</th>
+
+              <th style={thSub}>Fecha</th>
+              <th style={thSub}>Tipo</th>
+              <th style={thSub}>Serie</th>
+              <th style={thSub}>Número</th>
+
+              <th style={thSub}>Operación</th>
+
+              <th style={thSub}>Cant</th>
+              <th style={thSub}>C.Unit</th>
+              <th style={thSub}>Total</th>
+
+              <th style={thSub}>Cant</th>
+              <th style={thSub}>C.Unit</th>
+              <th style={thSub}>Total</th>
+
+              <th style={thSub}>Cant</th>
+              <th style={thSub}>C.Unit</th>
+              <th style={thSub}>Total</th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {filas.map((row, i) => {
               const globalIndex = (pagina - 1) * FILAS_POR_PAGINA + i;
-              const esPrimerError = globalIndex === primerErrorIndex;
-
-              const tieneError =
-                row.error_a || row.error_b || row.saldo_negativo;
-
-              const esPar = i % 2 === 0;
-
-              const colorFila = mostrarSemaforo
-                ? colorSemaforo[row.semaforo] || (esPar ? "" : "bg-gray-50")
-                : row.saldo_negativo
-                  ? "bg-red-50"
-                  : esPar
-                    ? ""
-                    : "bg-gray-50";
+              const esError = globalIndex === primerErrorIndex;
+              const semaforo = getSemaforo(row);
+              const tieneError = semaforo !== "🟢";
 
               return (
                 <tr
-                  ref={esPrimerError ? firstErrorRef : null}
                   key={row.id}
-                  className={`
-                    ${colorFila}
-                    ${tieneError ? "border-l-4 border-red-500" : ""}
-                    ${esPrimerError ? "animate-pulse" : ""}
-                   hover:bg-indigo-50/40 transition-colors
-                  `}
+                  ref={esError ? firstErrorRef : null}
+                  style={{
+                    background: esError
+                      ? "rgba(245,158,11,0.15)"
+                      : tieneError
+                      ? "rgba(226,75,74,0.06)"
+                      : i % 2 === 0
+                      ? "transparent"
+                      : "rgba(55,138,221,0.03)",
+                    borderBottom: "1px solid rgba(55,138,221,0.05)",
+                  }}
                 >
-                  {mostrarSemaforo && (
-                    <td className={tdClass + " text-center text-base"}>
-                      {row.semaforo}
-                    </td>
-                  )}
-                  <td className={tdClass + " text-center font-semibold"}>
-                    {row.fila}
-                  </td>
-                  <td
-                    className={
-                      tdClass + " font-mono font-semibold text-indigo-700"
-                    }
-                  >
-                    {row.codigo ?? "—"}
-                  </td>
-                  <td className={tdClass + " text-center whitespace-nowrap"}>
-                    {fmtFecha(row.fecha)}
-                  </td>
-                  <td className={tdClass + " text-center"}>
-                    {row.tipo_comprobante}
-                  </td>
-                  <td className={tdClass + " text-center"}>{row.serie}</td>
-                  <td className={tdClass + " text-center font-mono"}>
-                    {row.numero}
-                  </td>
-                  <td className={tdClass + " whitespace-nowrap"}>
-                    {row.tipo_operacion}
-                  </td>
-                  {/* Entradas */}
-                  <td className={tdNumClass}>{fmtCant(row.ent_cantidad)}</td>
-                  <td className={tdNumClass}>{fmtUnit(row.ent_costo_unit)}</td>
-                  <td className={tdNumClass}>
-                    {fmtTotal(row.ent_costo_total)}
-                  </td>
-                  {/* Salidas */}
-                  <td className={tdNumClass}>{fmtCant(row.sal_cantidad)}</td>
-                  <td className={tdNumClass}>{fmtUnit(row.sal_costo_unit)}</td>
-                  <td className={tdNumClass}>
-                    {fmtTotal(row.sal_costo_total)}
-                  </td>
-                  {/* Saldo */}
-                  <td className={tdNumClass + " font-semibold"}>
+                  {mostrarSemaforo && <td style={td}>{semaforo}</td>}
+                  <td style={td}>{row.fila}</td>
+                  <td style={{ ...td, color: "#378ADD", fontWeight: 600 }}>{row.codigo}</td>
+
+                  <td style={td}>{fmtFecha(row.fecha)}</td>
+                  <td style={td}>{row.tipo_comprobante}</td>
+                  <td style={td}>{row.serie}</td>
+                  <td style={td}>{row.numero}</td>
+
+                  <td style={td}>{row.tipo_operacion}</td>
+
+                  <td style={td}>{fmtCant(row.ent_cantidad)}</td>
+                  <td style={td}>{fmtUnit(row.ent_costo_unit)}</td>
+                  <td style={td}>{fmtTotal(row.ent_costo_total)}</td>
+
+                  <td style={td}>{fmtCant(row.sal_cantidad)}</td>
+                  <td style={td}>{fmtUnit(row.sal_costo_unit)}</td>
+                  <td style={td}>{fmtTotal(row.sal_costo_total)}</td>
+
+                  <td style={{ ...td, fontWeight: 600, color: "#85b7eb" }}>
                     {fmtCant(row.saldo_cantidad)}
                   </td>
-                  <td className={tdNumClass + " font-semibold"}>
-                    {fmtUnit(row.saldo_costo_unit)}
-                  </td>
-                  <td className={tdNumClass + " font-semibold"}>
+                  <td style={td}>{fmtUnit(row.saldo_costo_unit)}</td>
+                  <td style={{ ...td, fontWeight: 600, color: "#85b7eb" }}>
                     {fmtTotal(row.saldo_costo_total)}
                   </td>
                 </tr>
@@ -243,39 +173,23 @@ export default function KardexTable({
         </table>
       </div>
 
-      {/* Paginación */}
+      {/* PAGINACIÓN */}
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between text-sm text-gray-500">
-          <span>
-            Mostrando {(pagina - 1) * FILAS_POR_PAGINA + 1}–
-            {Math.min(pagina * FILAS_POR_PAGINA, movimientos.length)} de{" "}
-            {movimientos.length} registros
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "10px 16px",
+          borderTop: "1px solid rgba(55,138,221,0.08)"
+        }}>
+          <span style={{ fontSize: 10, color: "#2a5080" }}>
+            Página {pagina} de {totalPaginas}
           </span>
-          <div className="flex gap-1">
-            <PagBtn onClick={() => setPagina(1)} disabled={pagina === 1}>
-              ««
-            </PagBtn>
-            <PagBtn
-              onClick={() => setPagina((p) => p - 1)}
-              disabled={pagina === 1}
-            >
-              ‹
-            </PagBtn>
-            <span className="px-3 py-1 bg-indigo-600 text-white rounded-lg font-semibold">
-              {pagina}
-            </span>
-            <PagBtn
-              onClick={() => setPagina((p) => p + 1)}
-              disabled={pagina === totalPaginas}
-            >
-              ›
-            </PagBtn>
-            <PagBtn
-              onClick={() => setPagina(totalPaginas)}
-              disabled={pagina === totalPaginas}
-            >
-              »»
-            </PagBtn>
+
+          <div style={{ display: "flex", gap: 4 }}>
+            <PagBtn onClick={() => setPagina(1)} disabled={pagina === 1}>«</PagBtn>
+            <PagBtn onClick={() => setPagina(p => p - 1)} disabled={pagina === 1}>‹</PagBtn>
+            <PagBtn onClick={() => setPagina(p => p + 1)} disabled={pagina === totalPaginas}>›</PagBtn>
+            <PagBtn onClick={() => setPagina(totalPaginas)} disabled={pagina === totalPaginas}>»</PagBtn>
           </div>
         </div>
       )}
@@ -283,29 +197,38 @@ export default function KardexTable({
   );
 }
 
-function PagBtn({
-  onClick,
-  disabled,
-  children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
+// estilos
+const thDark = { background: "#0d1f33" };
+
+const thGrupo = {
+  padding: "6px",
+  textTransform: "uppercase",
+  fontSize: 9,
+  color: "white",
+};
+
+const thSub = {
+  padding: "5px",
+  fontSize: 9,
+  color: "#3a6080",
+};
+
+const td = {
+  padding: "6px 8px",
+  color: "#6a8ab0",
+};
+
+function PagBtn({ onClick, disabled, children }: any) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200
-                 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-    >
+    <button onClick={onClick} disabled={disabled} style={{
+      padding: "4px 8px",
+      borderRadius: 6,
+      background: disabled ? "#eee" : "#378ADD",
+      color: disabled ? "#888" : "white",
+      border: "none",
+      cursor: disabled ? "not-allowed" : "pointer"
+    }}>
       {children}
     </button>
   );
 }
-
-const thClass =
-  "px-2 py-2 text-center border-r border-indigo-200 last:border-r-0 whitespace-nowrap";
-const tdClass = "px-2 py-1.5 border-r border-gray-100 last:border-r-0";
-const tdNumClass =
-  "px-2 py-1.5 text-right border-r border-gray-100 last:border-r-0 tabular-nums";
