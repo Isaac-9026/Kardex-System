@@ -141,7 +141,7 @@ const Sidebar = ({ onNavigate, currentPath, onAgregarSaldo }: {
       {/* Saldos — item + botón "+" en la misma fila */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <div style={{ flex: 1 }}>
-          {navItem('Saldos', <IconSaldos />, '/', false)}
+          {navItem('Saldos', <IconSaldos />, '/saldos', currentPath === '/saldosiniciales')}
         </div>
         <button
           type="button"
