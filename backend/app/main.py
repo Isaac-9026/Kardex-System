@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routers import kardex_router, historial_router, saldos_router
+from app.routers import kardex_router , historial_router, saldos_router, productos_router
 from app.exceptions import KardexException, kardex_exception_handler, generic_exception_handler
 
 # ── Importar modelos para que Alembic los detecte ─────────────────────────────
@@ -37,13 +37,14 @@ app.add_exception_handler(Exception,       generic_exception_handler)
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(kardex_router,   prefix="/api/v1")
 app.include_router(historial_router, prefix="/api/v1")
-app.include_router(saldos_router,   prefix="/api/v1")
+app.include_router(saldos_router,    prefix="/api/v1")
+app.include_router(productos_router, prefix="/api/v1")
 
 
 # ── Eventos de inicio ─────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
-    # Solo en desarrollo — en producción usar Alembic
+    #solo en desarrollo — en produccion usar Alembic
     if settings.DEBUG:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
