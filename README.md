@@ -1,88 +1,149 @@
-# 📊 Kardex Viewer
+# Kardex Inventory System
 
-Sistema web para el procesamiento automático de inventarios en formato Kardex,
-con cálculo de Costo Promedio Ponderado y verificación de integridad de datos.
+Sistema web para el procesamiento y gestión de inventarios en formato Kardex,
+con cálculo automático de **Costo Promedio Ponderado**, validación de datos
+y control de trazabilidad.
 
-> 🧪 **v1.0 —En fase de pruebas y corrección de errores.**
+> 🚧 **v1.1 — En desarrollo activo**
 
 ---
 
 ## 🧱 Tecnologías
 
-| Capa | Tecnología |
-|---|---|
-| Frontend | React + Vite + TypeScript + Tailwind v4 |
-| Backend | FastAPI + Python |
-| Base de datos | PostgreSQL |
-| ORM | SQLAlchemy + Alembic |
-| Procesamiento | pandas + openpyxl |
+| Capa          | Tecnología                               |
+| ------------- | ---------------------------------------- |
+| Frontend      | React + Vite + TypeScript + Tailwind CSS |
+| Backend       | FastAPI + Python                         |
+| Base de datos | PostgreSQL                               |
+| ORM           | SQLAlchemy + Alembic                     |
+| Procesamiento | pandas + openpyxl                        |
 
 ---
 
 ## ✨ Funcionalidades
 
-- 📥 Carga de archivos Excel de movimientos Kardex
-- 🧮 Cálculo automático con **Costo Promedio Ponderado**
-- 🔍 Verificación de integridad en dos niveles (A y B)
-- 🚦 Sistema de semáforo por fila (🟢🟡🔴⚫)
-- 📅 Filtros por código, año/mes, fecha exacta y rango
-- 📤 Exportación a Excel con estructura original
-- 🗄️ Almacenamiento histórico en PostgreSQL
-- ⚠️ Detección de saldos negativos y duplicados
+### 📦 Procesamiento Kardex
+
+* Carga de archivos Excel de movimientos
+* Cálculo automático con **Costo Promedio Ponderado (CPP)**
+* Validación de integridad (Reglas A y B)
+* Sistema de semáforo por fila
+* Exportación a Excel con datos recalculados
 
 ---
 
-## 🚀 Instalación
+### 🗄️ Gestión de datos (CRUD)
 
-### Requisitos previos
+#### Saldos Iniciales
 
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL 15+
+* Crear, editar y eliminar saldos iniciales
+* Asociación automática con productos
+* Cálculo automático de costo total
+* Persistencia en base de datos
 
-### Backend
+#### Sistema de advertencias
+
+* Detecta si un saldo ya fue usado en procesamientos
+* Permite edición sin bloqueo (enfoque no destructivo)
+* Mantiene integridad del historial
+
+---
+
+### 📊 Historial y trazabilidad
+
+* Registro de procesamientos realizados
+* Almacenamiento persistente en PostgreSQL
+* Relación entre productos, saldos y movimientos
+* Reprocesamiento como mecanismo de corrección
+
+---
+
+### 🔎 Filtros y consulta
+
+* Filtros por código, fecha, mes y rango
+* Búsqueda de productos
+* Visualización de resultados procesados
+
+---
+
+## 🧠 Arquitectura
+
+El sistema sigue una arquitectura en capas:
+
+```
+Router (FastAPI)
+   ↓
+Service (lógica de negocio)
+   ↓
+Repository (acceso a datos)
+   ↓
+Database (PostgreSQL)
+```
+
+### Principios clave
+
+* 🔒 **Inmutabilidad contable:** los movimientos no se editan manualmente
+* ⚠️ **Advertencias en lugar de bloqueos**
+* ♻️ **Correcciones mediante reprocesamiento**
+* 🧩 Separación clara de responsabilidades (clean architecture)
+
+---
+
+## ⚙️ Instalación
+
+### Requisitos
+
+* Python 3.11+
+* Node.js 18+
+* PostgreSQL 15+
+
+---
+
+### 🔧 Backend
 
 ```bash
 cd backend
 python -m venv venv
 source venv/Scripts/activate      # Windows
-source venv/bin/activate     # Mac/Linux
+source venv/bin/activate         # Mac/Linux
 pip install -r requirements.txt
 ```
 
-Configura el archivo `.env`:
+Crear `.env`:
 
 ```env
 DATABASE_URL=postgresql://usuario:password@localhost/kardex_db
 CORS_ORIGINS=http://localhost:5173
 ```
 
-Ejecutar migraciones:
+Migraciones:
 
 ```bash
 alembic upgrade head
 ```
 
-Iniciar servidor:
+Run:
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload
 ```
 
-### Frontend
+---
+
+### 💻 Frontend
 
 ```bash
 cd frontend
 npm install
 ```
 
-Configura el archivo `.env`:
+`.env`:
 
 ```env
 VITE_API_URL=http://localhost:8000
 ```
 
-Iniciar servidor de desarrollo:
+Run:
 
 ```bash
 npm run dev
@@ -93,45 +154,35 @@ npm run dev
 ## 🗺️ Estado del desarrollo
 
 ### Backend
-- [x] config.py y database.py
-- [x] models/ — tablas PostgreSQL
-- [x] Migraciones con Alembic
-- [x] repositories/ — acceso a BD
-- [x] services/ — lógica Kardex
-- [x] routers/ — endpoints API
-- [ ] tests/ — en progreso
+
+* [x] Modelado de base de datos
+* [x] Migraciones con Alembic
+* [x] Arquitectura Repository + Service
+* [x] CRUD de saldos iniciales
+* [x] Sistema de advertencias
+* [ ] CRUD de productos (pendiente)
+* [ ] Tests
 
 ### Frontend
-- [x] Estructura base con Vite + React + TypeScript
-- [x] Tailwind v4 configurado
-- [x] types/index.ts
-- [x] services/ — cliente API
-- [x] hooks/ — useKardex, useFiltros
-- [x] lib/utils.ts
-- [x] components/ui/ — Button, Badge, Alert
-- [x] components/ — todos los componentes
-- [x] pages/ — Home, Kardex, Historial
 
-### Testing y correcciones
-- [ ] Pruebas de integración frontend ↔ backend
-- [ ] Corrección de errores detectados
-- [ ] Validación de cálculo Kardex con datos reales
-- [ ] Verificación de exportación Excel
+* [x] UI base con React + Tailwind
+* [x] Vista de Kardex
+* [x] Historial de procesamientos
+* [x] Modal de saldo inicial
+* [ ] Página de gestión de saldos (CRUD completo)
+* [ ] Mejoras UX/UI
 
 ---
 
-## 🐛 Problemas conocidos
+## 🔮 Roadmap
 
-> Se irán documentando conforme avance el testing.
-
----
-
-## 🔮 Mejoras futuras
-
-- Autenticación con JWT
-- Roles y permisos
-- Reportes estadísticos y gráficos
-- Soporte PEPS/FIFO
-- Auditoría detallada de cambios
+* CRUD completo de productos
+* Eliminación controlada de procesamientos
+* Dashboard con métricas
+* Autenticación (JWT)
+* Roles y permisos
+* Reportes gráficos
+* Auditoría de cambios
+* Soporte PEPS/FIFO
 
 ---
