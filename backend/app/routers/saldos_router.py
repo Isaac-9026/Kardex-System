@@ -1,126 +1,80 @@
-"""
-Router: /api/v1/saldos
-Agrega este archivo en backend/app/routers/saldos.py
-y registralo en main.py con:
-    from app.routers.saldos import router as saldos_router
-    app.include_router(saldos_router, prefix="/api/v1", tags=["saldos"])
-"""
-
-from fastapi           import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic          import BaseModel, Field, condecimal
-from datetime          import date
-from decimal           import Decimal
-
 from app.core.database import get_db
-from app.repositories.producto_repository import ProductoRepository
-from app.repositories.saldo_repository    import SaldoRepository
-
-router = APIRouter()
-
-
-# ── Schema de entrada ─────────────────────────────────────────────────────────
-class SaldoManualIn(BaseModel):
-    codigo:         str     = Field(..., min_length=1, max_length=20,
-                                    description="Código del producto (se crea si no existe)")
-    fecha:          date    = Field(..., description="Fecha del saldo inicial YYYY-MM-DD")
-    cantidad:       Decimal = Field(..., gt=0, description="Cantidad en stock")
-    costo_unitario: Decimal = Field(..., gt=0, description="Costo unitario CPP")
-
-
-# ── Schema de salida ──────────────────────────────────────────────────────────
-class SaldoManualOut(BaseModel):
-    ok:             bool
-    codigo:         str
-    producto_id:    int
-    fecha:          date
-    cantidad:       float
-    costo_unitario: float
-    costo_total:    float
-    mensaje:        str
-
-    model_config = {"from_attributes": True}
-
-
-# ── Endpoint ──────────────────────────────────────────────────────────────────
-@router.post(
-    "/saldos/manual",
-    response_model = SaldoManualOut,
-    summary        = "Agregar o actualizar saldo inicial manual",
-    description    = (
-        "Crea o actualiza el saldo inicial de un producto por código. "
-        "Si el producto no existe en la BD se crea automáticamente. "
-        "El costo_total se calcula internamente (cantidad × costo_unitario)."
-    ),
+from app.services.saldo_service import SaldoService
+from app.schemas.saldo_inicial import (
+    SaldoInicialCreate,
+    SaldoInicialUpdate,
+    SaldoInicialResponse,
+    SaldoInicialConAdvertencia,
 )
-async def agregar_saldo_manual(
-    payload: SaldoManualIn,
-    db:      AsyncSession = Depends(get_db),
-) -> SaldoManualOut:
 
-    codigo = payload.codigo.strip().upper()
-
-    producto_repo = ProductoRepository(db)
-    saldo_repo    = SaldoRepository(db)
-
-    # 1. Obtener o crear el producto
-    producto = await producto_repo.get_or_create(codigo)
-
-    # 2. Calcular costo total
-    costo_total = payload.cantidad * payload.costo_unitario
-
-    # 3. Upsert saldo inicial
-    saldo = await saldo_repo.upsert(
-        producto_id    = producto.id,
-        fecha          = payload.fecha,
-        cantidad       = payload.cantidad,
-        costo_unitario = payload.costo_unitario,
-        costo_total    = costo_total,
-    )
-
-    # 4. Commit
-    await db.commit()
-
-    return SaldoManualOut(
-        ok             = True,
-        codigo         = codigo,
-        producto_id    = producto.id,
-        fecha          = saldo.fecha,
-        cantidad       = float(saldo.cantidad),
-        costo_unitario = float(saldo.costo_unitario),
-        costo_total    = float(saldo.costo_total),
-        mensaje        = f"Saldo inicial para '{codigo}' guardado correctamente.",
-    )
+router = APIRouter(prefix="/saldos", tags=["Saldos Iniciales"])
 
 
-# ── Listar todos los saldos (útil para debug / vista Saldos) ──────────────────
-class SaldoResumen(BaseModel):
-    producto_id:    int
-    codigo:         str
-    fecha:          date
-    cantidad:       float
-    costo_unitario: float
-    costo_total:    float
+# ── Listar todos ──────────────────────────────────────────────────────────────
+@router.get("/", response_model=list[SaldoInicialResponse])
+async def listar_saldos(
+    limit:  int = Query(100, ge=1, le=500),
+    offset: int = Query(0,   ge=0),
+    db:     AsyncSession = Depends(get_db),
+):
+    """Lista todos los saldos iniciales registrados."""
+    service = SaldoService(db)
+    return await service.listar(limit=limit, offset=offset)
 
-    model_config = {"from_attributes": True}
+
+# ── Obtener uno ───────────────────────────────────────────────────────────────
+@router.get("/{saldo_id}", response_model=SaldoInicialResponse)
+async def obtener_saldo(
+    saldo_id: int,
+    db:       AsyncSession = Depends(get_db),
+):
+    """Obtiene un saldo inicial por su ID."""
+    service = SaldoService(db)
+    return await service.obtener(saldo_id)
 
 
-@router.get(
-    "/saldos",
-    response_model = list[SaldoResumen],
-    summary        = "Listar todos los saldos iniciales",
-)
-async def listar_saldos(db: AsyncSession = Depends(get_db)) -> list[SaldoResumen]:
-    repo   = SaldoRepository(db)
-    saldos = await repo.get_all_con_producto()
-    return [
-        SaldoResumen(
-            producto_id    = s.producto_id,
-            codigo         = s.producto.codigo if s.producto else "?",
-            fecha          = s.fecha,
-            cantidad       = float(s.cantidad),
-            costo_unitario = float(s.costo_unitario),
-            costo_total    = float(s.costo_total),
-        )
-        for s in saldos
-    ]
+# ── Crear ─────────────────────────────────────────────────────────────────────
+@router.post("/", response_model=SaldoInicialConAdvertencia, status_code=201)
+async def crear_saldo(
+    data: SaldoInicialCreate,
+    db:   AsyncSession = Depends(get_db),
+):
+    """
+    Crea o actualiza el saldo inicial de un producto.
+    Si el producto no existe lo registra automáticamente.
+    Si ya existe un saldo para ese producto lo actualiza.
+    Incluye advertencia si el producto ya tiene procesamientos.
+    """
+    service = SaldoService(db)
+    return await service.crear(data)
+
+
+# ── Actualizar ────────────────────────────────────────────────────────────────
+@router.put("/{saldo_id}", response_model=SaldoInicialConAdvertencia)
+async def actualizar_saldo(
+    saldo_id: int,
+    data:     SaldoInicialUpdate,
+    db:       AsyncSession = Depends(get_db),
+):
+    """
+    Actualiza un saldo inicial existente.
+    Incluye advertencia si el saldo ya fue usado en procesamientos.
+    """
+    service = SaldoService(db)
+    return await service.actualizar(saldo_id, data)
+
+
+# ── Eliminar ──────────────────────────────────────────────────────────────────
+@router.delete("/{saldo_id}")
+async def eliminar_saldo(
+    saldo_id: int,
+    db:       AsyncSession = Depends(get_db),
+):
+    """
+    Elimina un saldo inicial.
+    Incluye advertencia si el saldo ya fue usado en procesamientos.
+    """
+    service = SaldoService(db)
+    return await service.eliminar(saldo_id)

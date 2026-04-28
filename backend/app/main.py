@@ -37,7 +37,7 @@ app.add_exception_handler(Exception,       generic_exception_handler)
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(kardex_router,   prefix="/api/v1")
 app.include_router(historial_router, prefix="/api/v1")
-app.include_router(saldos_router,    prefix="/api/v1")
+app.include_router(saldos_router,   prefix="/api/v1")
 
 
 # ── Eventos de inicio ─────────────────────────────────────────────────────────
