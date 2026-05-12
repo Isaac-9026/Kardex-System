@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useKardex } from '../hooks/useKardex'
-import KardexTable   from '../components/KardexTable'
+import KardexTable, { type KardexTableHandle } from '../components/KardexTable'
 import AlertaBanner  from '../components/AlertaBanner'
 import BadgeProducto from '../components/BadgeProducto'
 import type { FiltroFecha as IFiltroFecha } from '../types'
@@ -241,6 +241,8 @@ export default function Kardex() {
     cargarKardex, descargarExcel,
   } = useKardex()
 
+  const kardexTableRef = useRef<KardexTableHandle>(null)
+
   const [codigo,          setCodigo]          = useState('')
   const [filtroFecha,     setFiltroFecha]     = useState<IFiltroFecha>({ modo: 'anio_mes' })
   const [mostrarSemaforo, setMostrarSemaforo] = useState(false)
@@ -398,14 +400,20 @@ export default function Kardex() {
           {/* Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {erroresIntegridad > 0 && (
-              <span style={{
-                ...btnBase,
-                background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.25)',
-                color: '#fbbf24', cursor: 'default',
-              }}>
+              <button
+                type="button"
+                title="Ir a la primera anomalía en la tabla"
+                onClick={() => kardexTableRef.current?.scrollToFirstAnomaly()}
+                style={{
+                  ...btnBase,
+                  background: 'rgba(245,158,11,0.12)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  color: '#fbbf24',
+                  cursor: 'pointer',
+                }}
+              >
                 ⚠ {erroresIntegridad} anomalía{erroresIntegridad > 1 ? 's' : ''}
-              </span>
+              </button>
             )}
             <button
               type="button"
@@ -901,7 +909,11 @@ export default function Kardex() {
                 <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }}>Cargando movimientos...</span>
               </div>
             ) : (
-              <KardexTable movimientos={movimientos} mostrarSemaforo={mostrarSemaforo} />
+              <KardexTable
+                ref={kardexTableRef}
+                movimientos={movimientos}
+                mostrarSemaforo={mostrarSemaforo}
+              />
             )}
 
             {/* Footer */}
