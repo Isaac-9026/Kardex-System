@@ -8,9 +8,9 @@ export const procesarArchivos = async (
 ): Promise<UploadResponse> => {
   const formData = new FormData()
 
-  // Todos los archivos bajo el MISMO nombre "movimientos" — FastAPI los recibe como List.
+  // Todos los archivos bajo el MISMO nombre "movimientos" — FastAPI los recibe como List
   archivosMovimientos.forEach(file => {
-    formData.append('movimientos',file)
+    formData.append('movimientos', file)
   })
 
   if (archivoSaldos) {
@@ -90,5 +90,15 @@ export const getHistorial = async (
   const response = await api.get('/api/v1/historial/', {
     params: { limit, offset },
   })
+  return response.data
+}
+// ── Eliminar un procesamiento ─────────────────────────────────────────────────
+export const eliminarProcesamiento = async (procesamientoId: number): Promise<void> => {
+  await api.delete(`/api/v1/historial/${procesamientoId}`)
+}
+
+// ── Eliminar varios procesamientos ────────────────────────────────────────────
+export const eliminarProcesamientosMultiple = async (ids: number[]): Promise<{ eliminados: number; fallidos: number[] }> => {
+  const response = await api.post('/api/v1/historial/eliminar-multiple', { ids })
   return response.data
 }
