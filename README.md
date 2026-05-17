@@ -160,7 +160,7 @@ npm run dev
 * [x] Arquitectura Repository + Service
 * [x] CRUD de saldos iniciales
 * [x] Sistema de advertencias
-* [ ] CRUD de productos (pendiente)
+* [x] CRUD de productos (pendiente)
 * [ ] Tests
 
 ### Frontend
@@ -169,8 +169,8 @@ npm run dev
 * [x] Vista de Kardex
 * [x] Historial de procesamientos
 * [x] Modal de saldo inicial
-* [ ] Página de gestión de saldos (CRUD completo)
-* [ ] Mejoras UX/UI
+* [x] Página de gestión de saldos (CRUD completo)
+* [x] Mejoras UX/UI
 
 ---
 
