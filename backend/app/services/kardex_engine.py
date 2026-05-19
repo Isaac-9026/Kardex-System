@@ -18,6 +18,7 @@ TIPOS_OPERACION_VALIDOS = {
     "01 venta",
     "02 compra",
     "05 devolución recibida",
+    "06 devolución entregada",
 }
 
 # ── Mapeo ENUM BD ─────────────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ TIPO_OP_MAP = {
     "01 venta": "01 Venta",
     "02 compra": "02 Compra",
     "05 devolución recibida": "05 Devolucion Recibida",
+    "06 devolución entregada": "06 Devolucion Entregada",
 }
 
 
@@ -296,9 +298,10 @@ def calcular_saldo_final(
     Recalcula completamente las columnas de Saldo Final para todos los productos.
 
     Reglas:
-    - 01 Venta        → SALIDA.  Costo promedio NO cambia.
-    - 02 Compra       → ENTRADA. Costo promedio SE RECALCULA.
-    - 05 Devolución   → ENTRADA. Costo unitario entrada = 0. Costo promedio NO cambia.
+    - 01 Venta                 → SALIDA.  Costo promedio NO cambia.
+    - 02 Compra                → ENTRADA. Costo promedio SE RECALCULA.
+    - 05 Devolución Recibida   → ENTRADA. Costo unitario entrada = 0. Costo promedio NO cambia.
+    - 06 Devolución Entregada  → SALIDA.  Costo promedio NO cambia. 
 
     Todo el cálculo interno trabaja con Decimal.
     """
@@ -375,8 +378,27 @@ def calcular_saldo_final(
 
             tipo_op = str(df.at[idx, "Tipo_Operacion"]).strip().lower()
 
+            # DEVOLUCIÓN ENTREGADA (06) — al proveedor, SALE del almacén
+            # IMPORTANTE: evaluar ANTES que "venta" y "devolu" porque contiene "entregada"
+            if "devolu" in tipo_op and "entreg" in tipo_op:
+
+                sal_cant = d(df.at[idx, "Sal_Cantidad"])
+                sal_unit = d(df.at[idx, "Orig_Sal_Costo_Unit"])
+                sal_total = q(sal_cant * sal_unit)
+
+                df.at[idx, "Sal_Costo_Unit"] = sal_unit
+                df.at[idx, "Sal_Costo_Total"] = sal_total
+
+                s_cant = q(s_cant - sal_cant)
+                s_total = q(s_total - sal_total)
+
+                # El costo promedio NO cambia (es una devolución de algo ya comprado)
+                if s_cant < ZERO:
+                    df.at[idx, "Saldo_Negativo"] = True
+                    tiene_negativo = True
+
             # VENTA
-            if "venta" in tipo_op:
+            elif "venta" in tipo_op:
 
                 sal_cant = d(df.at[idx, "Sal_Cantidad"])
                 sal_unit = d(df.at[idx, "Orig_Sal_Costo_Unit"])
@@ -409,7 +431,7 @@ def calcular_saldo_final(
                 else:
                     s_unit = ZERO
 
-            # DEVOLUCIÓN
+            # DEVOLUCIÓN RECIBIDA (05) — del cliente, ENTRA al almacén
             elif "devolu" in tipo_op:
 
                 dev_cant = d(df.at[idx, "Ent_Cantidad"])
@@ -456,7 +478,9 @@ def verificar_integridad(
     for idx in df.index:
         tipo_op = str(df.at[idx, "Tipo_Operacion"]).strip().lower()
 
-        if "devolu" in tipo_op:
+        #  Las devoluciones recibidas (05) no se verifican
+        # porque vienen con costo 0 en el Excel original
+        if "devolu" in tipo_op and "recib" in tipo_op:
             continue
 
         # ── Compras ────────────────────────────────────
@@ -477,8 +501,9 @@ def verificar_integridad(
             if abs(calc_ent_total - orig_ent_total) > tolerancia:
                 df.at[idx, "Error_A"] = True
 
-        # ── Ventas ─────────────────────────────────────
-        if "venta" in tipo_op:
+        # ── Ventas y Devoluciones Entregadas ───────────
+        # Ambas se verifican igual: salen del almacén con costo del Excel
+        if "venta" in tipo_op or ("devolu" in tipo_op and "entreg" in tipo_op):
 
             sal_cant = d(df.at[idx, "Sal_Cantidad"])
             orig_sal_unit = d(df.at[idx, "Orig_Sal_Costo_Unit"])

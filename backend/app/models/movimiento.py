@@ -14,6 +14,7 @@ class TipoOperacion(str, enum.Enum):
     venta       = "01 Venta"
     compra      = "02 Compra"
     devolucion  = "05 Devolucion Recibida"
+    devolucion_entregada   = "06 Devolucion Entregada" 
 
 
 class Movimiento(Base):
