@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useLayoutEffect,
+  useEffect,
   forwardRef,
   useImperativeHandle,
 } from "react";
@@ -10,6 +11,7 @@ import type { KardexRow } from "../types";
 
 export type KardexTableHandle = {
   scrollToFirstAnomaly: () => void;
+  scrollToCodigo: (codigo: string) => void;
 };
 
 interface KardexTableProps {
@@ -49,13 +51,46 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
 ) {
   const [pagina, setPagina] = useState(1);
   const firstErrorRef = useRef<HTMLTableRowElement | null>(null);
+  const codigoTargetRef = useRef<HTMLTableRowElement | null>(null);
   const pendingScrollToAnomaly = useRef(false);
+  const pendingScrollToCodigo = useRef<string | null>(null);
+  const [highlightIndex, setHighlightIndex] = useState<number | null>(null);
+
+  // ✅ NUEVO: detectar cuando el usuario está imprimiendo
+  const [imprimiendo, setImprimiendo] = useState(false);
+
+  useEffect(() => {
+  const handleBeforePrint = () => setImprimiendo(true);
+  const handleAfterPrint  = () => setImprimiendo(false);
+  window.addEventListener('beforeprint', handleBeforePrint);
+  window.addEventListener('afterprint', handleAfterPrint);
+
+  // ✅ NUEVO: función global para forzar todas las filas antes de imprimir
+  (window as any).__kardexPrepararImpresion = () => {
+    setImprimiendo(true);
+  };
+  (window as any).__kardexTerminarImpresion = () => {
+    setImprimiendo(false);
+  };
+
+  return () => {
+    window.removeEventListener('beforeprint', handleBeforePrint);
+    window.removeEventListener('afterprint', handleAfterPrint);
+    delete (window as any).__kardexPrepararImpresion;
+    delete (window as any).__kardexTerminarImpresion;
+  };
+}, []);
 
   const primerErrorIndex = useMemo(() => {
     return movimientos.findIndex(
       (m) => m.error_a || m.error_b || m.saldo_negativo
     );
   }, [movimientos]);
+
+  // Función interna: localizar primera fila por código
+  const findPrimerIndexCodigo = (codigo: string) => {
+    return movimientos.findIndex(m => String(m.codigo).trim() === String(codigo).trim());
+  };
 
   useImperativeHandle(
     ref,
@@ -75,8 +110,27 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
         pendingScrollToAnomaly.current = true;
         setPagina(paginaError);
       },
+      scrollToCodigo: (codigo: string) => {
+        const idx = findPrimerIndexCodigo(codigo);
+        if (idx === -1) return;
+        const paginaTarget = Math.floor(idx / FILAS_POR_PAGINA) + 1;
+        pendingScrollToCodigo.current = codigo;
+
+        if (pagina === paginaTarget) {
+          queueMicrotask(() => {
+            codigoTargetRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+            setHighlightIndex(idx);
+            setTimeout(() => setHighlightIndex(null), 4000);
+          });
+        } else {
+          setPagina(paginaTarget);
+        }
+      },
     }),
-    [pagina, primerErrorIndex]
+    [pagina, primerErrorIndex, movimientos]
   );
 
   useLayoutEffect(() => {
@@ -92,14 +146,60 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
     pendingScrollToAnomaly.current = false;
   }, [pagina, primerErrorIndex]);
 
+  useLayoutEffect(() => {
+    if (!pendingScrollToCodigo.current) return;
+    const codigo = pendingScrollToCodigo.current;
+    const idx = findPrimerIndexCodigo(codigo);
+    pendingScrollToCodigo.current = null;
+    if (idx === -1) return;
+
+    queueMicrotask(() => {
+      codigoTargetRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      setHighlightIndex(idx);
+      setTimeout(() => setHighlightIndex(null), 4000);
+    });
+  }, [pagina]);
+
+  useEffect(() => {
+    (window as any).__kardexIrAFila = (codigo: string) => {
+      const idx = findPrimerIndexCodigo(codigo);
+      if (idx === -1) return;
+      const paginaTarget = Math.floor(idx / FILAS_POR_PAGINA) + 1;
+      pendingScrollToCodigo.current = codigo;
+      if (pagina === paginaTarget) {
+        queueMicrotask(() => {
+          codigoTargetRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          setHighlightIndex(idx);
+          setTimeout(() => setHighlightIndex(null), 4000);
+        });
+      } else {
+        setPagina(paginaTarget);
+      }
+    };
+
+    return () => {
+      delete (window as any).__kardexIrAFila;
+    };
+  }, [movimientos, pagina]);
+
   const totalPaginas = Math.ceil(movimientos.length / FILAS_POR_PAGINA);
 
+  // ✅ CAMBIO: al imprimir muestra TODAS las filas; si no, paginadas
   const filas = useMemo(() => {
+    if (imprimiendo) {
+      return movimientos;
+    }
     return movimientos.slice(
       (pagina - 1) * FILAS_POR_PAGINA,
       pagina * FILAS_POR_PAGINA
     );
-  }, [movimientos, pagina]);
+  }, [movimientos, pagina, imprimiendo]);
 
   if (movimientos.length === 0) {
     return <div style={{ padding: 40, textAlign: "center", color: "#2a5080" }}>Sin datos</div>;
@@ -107,8 +207,39 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
 
   return (
     <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      {/* ✅ NUEVO: CSS de impresión */}
+      <style>{`
+        @media print {
+          .kardex-tbl-print {
+            font-size: 7px !important;
+            table-layout: auto !important;
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+          .kardex-tbl-print th,
+          .kardex-tbl-print td {
+            padding: 2px 3px !important;
+            font-size: 7px !important;
+            white-space: nowrap !important;
+          }
+          .kardex-tbl-print th[colspan] {
+            font-size: 7px !important;
+            padding: 3px 2px !important;
+          }
+          .kardex-pagination-bar {
+            display: none !important;
+          }
+          .kardex-tbl-print thead {
+            display: table-header-group !important;
+          }
+          .kardex-tbl-print tr {
+            page-break-inside: avoid !important;
+          }
+        }
+      `}</style>
+
       <div style={{ overflowX: "auto" }}>
-        <table style={{
+        <table className="kardex-tbl-print" style={{
           borderCollapse: "separate",
           borderSpacing: 0,
           fontSize: 11,
@@ -158,11 +289,15 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
 
           <tbody>
             {filas.map((row, i) => {
-              const globalIndex = (pagina - 1) * FILAS_POR_PAGINA + i;
+              const globalIndex = imprimiendo ? i : (pagina - 1) * FILAS_POR_PAGINA + i;
               const esError = globalIndex === primerErrorIndex;
+              const esHighlight = globalIndex === highlightIndex;
               const semaforo = getSemaforo(row);
               const tieneError = semaforo !== "🟢";
-              const bgBase = esError
+
+              const bgBase = esHighlight
+                ? "rgba(96,165,250,0.22)"
+                : esError
                 ? "rgba(245,158,11,0.15)"
                 : tieneError
                 ? "rgba(226,75,74,0.06)"
@@ -170,13 +305,31 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
                 ? "transparent"
                 : "rgba(55,138,221,0.03)";
 
+              const isCodigoTarget =
+                pendingScrollToCodigo.current === null &&
+                highlightIndex === globalIndex;
+
+              const rowRef = esError
+                ? firstErrorRef
+                : isCodigoTarget
+                ? codigoTargetRef
+                : null;
+
               return (
                 <tr
                   key={row.id}
-                  ref={esError ? firstErrorRef : null}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(56,139,221,0.09)" }}
+                  ref={rowRef}
+                  onMouseEnter={e => {
+                    if (!esHighlight) {
+                      e.currentTarget.style.background = "rgba(56,139,221,0.09)"
+                    }
+                  }}
                   onMouseLeave={e => { e.currentTarget.style.background = bgBase }}
-                  style={{ background: bgBase, transition: "background .1s" }}
+                  style={{
+                    background: bgBase,
+                    transition: "background .3s",
+                    boxShadow: esHighlight ? "inset 0 0 0 2px rgba(96,165,250,0.55)" : "none",
+                  }}
                 >
                   {mostrarSemaforo && <td style={td}>{semaforo}</td>}
                   <td style={td}>{row.fila}</td>
@@ -211,9 +364,9 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
         </table>
       </div>
 
-      {/* PAGINACIÓN */}
+      {/* PAGINACIÓN — ✅ con clase para ocultar al imprimir */}
       {totalPaginas > 1 && (
-        <div style={{
+        <div className="kardex-pagination-bar" style={{
           display: "flex",
           justifyContent: "space-between",
           padding: "10px 16px",
