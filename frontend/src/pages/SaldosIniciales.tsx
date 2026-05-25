@@ -86,6 +86,11 @@ const IconTrash = () => (
     <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
   </svg>
 )
+const IconSearch = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+)
 
 /* ═══════════════════════════ Sidebar ═══════════════════════════ */
 const SIDEBAR_W = 200
@@ -136,8 +141,8 @@ const Sidebar = ({ onNavigate, currentPath, onAgregarSaldo }: {
       </div>
 
       <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.15em', color: '#1e3a5a', textTransform: 'uppercase' as const, padding: '6px 10px 4px' }}>Principal</div>
-      {navItem('Dashboard',  <IconGrid />,    '/',           false)}
-      {navItem('Procesar',   <IconUpload />,  '/',           currentPath === '/')}
+      {navItem('Dashboard',  <IconGrid />,    '/',          false)}
+      {navItem('Procesar',   <IconUpload />,  '/',          currentPath === '/')}
       {navItem('Actividad',  <IconHistory />, '/historial',  currentPath === '/historial')}
 
       <div style={{ height: 1, background: 'rgba(56,139,221,0.08)', margin: '10px 0' }} />
@@ -194,6 +199,7 @@ export default function SaldosIniciales() {
   const location = useLocation()
 
   const [saldos,        setSaldos]        = useState<Saldo[]>([])
+  const [busqueda,      setBusqueda]      = useState('') // Nuevo estado para la búsqueda
   const [loading,       setLoading]       = useState(true)
   const [error,         setError]         = useState<string | null>(null)
   const [modalOpen,     setModalOpen]     = useState(false)
@@ -237,6 +243,15 @@ export default function SaldosIniciales() {
     setSaldoEditando(null)
     fetchSaldos()
   }
+
+  /* ── Filtrado ───────────────────────────────────────── */
+  const saldosFiltrados = saldos.filter((s) => {
+    const termino = busqueda.toLowerCase()
+    return (
+      s.codigo.toLowerCase().includes(termino) ||
+      (s.descripcion && s.descripcion.toLowerCase().includes(termino))
+    )
+  })
 
   /* ── Tabla header style ─────────────────────────────── */
   const th: React.CSSProperties = {
@@ -354,6 +369,7 @@ export default function SaldosIniciales() {
               borderBottom: '1px solid rgba(56,139,221,0.08)',
               background: 'rgba(56,139,221,0.03)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              flexWrap: 'wrap', gap: 10
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 2, height: 12, background: '#f59e0b', borderRadius: 2 }} />
@@ -367,8 +383,32 @@ export default function SaldosIniciales() {
                   border: '1px solid rgba(245,158,11,0.22)',
                   color: '#f59e0b',
                 }}>
-                  {saldos.length}
+                  {saldosFiltrados.length}
                 </span>
+              </div>
+
+              {/* Buscador Integrado */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: '#07101e',
+                border: '1px solid rgba(56,139,221,0.2)',
+                borderRadius: 6,
+                padding: '5px 10px',
+                width: '100%',
+                maxWidth: 250,
+              }}>
+                <span style={{ color: '#4a7a9a', display: 'flex' }}><IconSearch /></span>
+                <input
+                  type="text"
+                  placeholder="Buscar por código o desc..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  style={{
+                    background: 'transparent', border: 'none', outline: 'none',
+                    color: '#c8ddef', fontSize: 11, fontFamily: "'IBM Plex Mono', monospace",
+                    width: '100%',
+                  }}
+                />
               </div>
             </div>
 
@@ -381,14 +421,14 @@ export default function SaldosIniciales() {
             )}
 
             {/* Empty */}
-            {!loading && saldos.length === 0 && (
+            {!loading && saldosFiltrados.length === 0 && (
               <div style={{ padding: '48px 0', textAlign: 'center', color: '#1e3a5a', fontSize: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
-                Sin saldos iniciales registrados
+                {saldos.length > 0 ? 'No se encontraron resultados para tu búsqueda' : 'Sin saldos iniciales registrados'}
               </div>
             )}
 
             {/* Table */}
-            {!loading && saldos.length > 0 && (
+            {!loading && saldosFiltrados.length > 0 && (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', fontSize: 12 }}>
                   <thead>
@@ -403,7 +443,7 @@ export default function SaldosIniciales() {
                     </tr>
                   </thead>
                   <tbody>
-                    {saldos.map((s, i) => (
+                    {saldosFiltrados.map((s, i) => (
                       <tr
                         key={s.id}
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,139,221,0.07)' }}
