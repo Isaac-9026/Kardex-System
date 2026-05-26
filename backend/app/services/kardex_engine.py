@@ -433,20 +433,26 @@ def calcular_saldo_final(
 
                 dev_cant = d(df.at[idx, "Ent_Cantidad"])
 
-                df.at[idx, "Ent_Costo_Unit"] = ZERO
-                df.at[idx, "Ent_Costo_Total"] = ZERO
+                # Tomar valor original del Excel si existe
+                orig_unit = d(df.at[idx, "Orig_Ent_Costo_Unit"])
 
-                # Valorización interna usando promedio actual
-                valor_devuelto = q(dev_cant * s_unit)
-                # Aumentar stock
+                # Si el Excel no trae costo, usar promedio actual
+                if orig_unit > ZERO:
+                    ent_unit = orig_unit
+                else:
+                    ent_unit = s_unit
+
+                ent_total = q(dev_cant * ent_unit)
+
+                # Guardar visualmente en el movimiento
+                df.at[idx, "Ent_Costo_Unit"] = ent_unit
+                df.at[idx, "Ent_Costo_Total"] = ent_total
+
+                # Actualizar saldo
                 s_cant = q(s_cant + dev_cant)
+                s_total = q(s_total + ent_total)
 
-                # Aumentar valor del inventario
-                s_total = q(s_total + valor_devuelto)
-                
-                # PARA ESTA ACTUALIZACION --- IMPORTANTE:
-                # el costo promedio NO cambia
-                # NO recalcular s_unit
+                # El promedio NO cambia
 
             # ── Guardar saldo final ────────────────────────────────────
             df.at[idx, "Saldo_Cantidad"] = s_cant
