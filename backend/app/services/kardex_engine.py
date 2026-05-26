@@ -436,10 +436,17 @@ def calcular_saldo_final(
                 df.at[idx, "Ent_Costo_Unit"] = ZERO
                 df.at[idx, "Ent_Costo_Total"] = ZERO
 
+                # Valorización interna usando promedio actual
+                valor_devuelto = q(dev_cant * s_unit)
+                # Aumentar stock
                 s_cant = q(s_cant + dev_cant)
 
-                # costo promedio NO cambia
-                s_total = q(s_cant * s_unit)
+                # Aumentar valor del inventario
+                s_total = q(s_total + valor_devuelto)
+                
+                # PARA ESTA ACTUALIZACION --- IMPORTANTE:
+                # el costo promedio NO cambia
+                # NO recalcular s_unit
 
             # ── Guardar saldo final ────────────────────────────────────
             df.at[idx, "Saldo_Cantidad"] = s_cant
