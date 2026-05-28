@@ -398,16 +398,27 @@ def calcular_saldo_final(
             elif "venta" in tipo_op:
 
                 sal_cant = d(df.at[idx, "Sal_Cantidad"])
-                sal_unit = d(df.at[idx, "Orig_Sal_Costo_Unit"])
+
+                # Tomar costo original del Excel
+                orig_unit = d(df.at[idx, "Orig_Sal_Costo_Unit"])
+
+                # Si el Excel no trae costo, usar promedio vigente
+                if orig_unit > ZERO:
+                    sal_unit = orig_unit
+                else:
+                    sal_unit = s_unit
+
                 sal_total = q(sal_cant * sal_unit)
 
+                # Guardar valores calculados/finales
                 df.at[idx, "Sal_Costo_Unit"] = sal_unit
                 df.at[idx, "Sal_Costo_Total"] = sal_total
 
+                # Actualizar saldo
                 s_cant = q(s_cant - sal_cant)
                 s_total = q(s_total - sal_total)
 
-                # El costo promedio NO cambia
+                # El promedio NO cambia
                 if s_cant < ZERO:
                     df.at[idx, "Saldo_Negativo"] = True
                     tiene_negativo = True
