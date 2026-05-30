@@ -156,6 +156,8 @@ class KardexService:
         alertas_dict  = procesamiento.alertas or {}
 
         def calcular_semaforo(m) -> str:
+            if m.saldo_negativo:
+                return "🔴"
             if m.error_a and m.error_b:
                 return "⚫"
             elif m.error_a:
@@ -164,12 +166,24 @@ class KardexService:
                 return "🟡"
             return "🟢"
 
+        def es_costo_reconstruido(m) -> bool:
+
+            tipo = (m.tipo_operacion or "").lower()
+
+            if "venta" not in tipo:
+                return False
+
+            return (
+                float(m.orig_sal_costo_unit) == 0
+                and float(m.sal_costo_unit) > 0
+            )
         movimientos_response = [
             MovimientoResponse(
                 **{c.key: getattr(m, c.key) for c in m.__table__.columns},
-                codigo   = m.producto.codigo if m.producto else None,
+                codigo = m.producto.codigo if m.producto else None,
                 semaforo = calcular_semaforo(m),
-                fila     = idx + 1,
+                fila = idx + 1,
+                costo_reconstruido = es_costo_reconstruido(m),
             )
             for idx, m in enumerate(movimientos)
         ]

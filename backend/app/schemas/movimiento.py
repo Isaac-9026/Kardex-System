@@ -46,6 +46,7 @@ class MovimientoResponse(MovimientoBase):
     error_a:        bool   # calculado vs original
     error_b:        bool   # consistencia interna
 
+    costo_reconstruido: bool = False  # Nuevo flag para indicar reconstrucción de costo
     # Semáforo calculado en runtime (no viene de BD)
     semaforo: Literal["🟢", "🟡", "🔴", "⚫"] = "🟢"
 

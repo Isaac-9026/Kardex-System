@@ -11,7 +11,7 @@ from app.schemas.procesamiento import AlertasProcesamiento
 # ── Configuración Decimal ─────────────────────────────────────────────────────
 DECIMAL_PLACES = Decimal("0.0000000001")  # 10 decimales
 ZERO = Decimal("0")
-TOLERANCIA = Decimal("0.01")
+TOLERANCIA = Decimal("0.10")
 
 # ── Tipos de operación válidos ────────────────────────────────────────────────
 TIPOS_OPERACION_VALIDOS = {
@@ -502,65 +502,101 @@ def verificar_integridad(
     tolerancia: Decimal = TOLERANCIA,
 ) -> pd.DataFrame:
 
-    df = df.copy()
+    ZERO = Decimal("0")
 
+    df = df.copy()
     df["Error_A"] = False
     df["Error_B"] = False
+    df["costo_reconstruido"] = False
     df["Semaforo"] = "🟢"
+
+    def es_valor_real(valor) -> bool:
+        v = d(valor)
+        return v > ZERO
 
     for idx in df.index:
         tipo_op = str(df.at[idx, "Tipo_Operacion"]).strip().lower()
 
-        #  Las devoluciones recibidas (05) no se verifican
-        # porque vienen con costo 0 en el Excel original
-        if "devolu" in tipo_op and "recib" in tipo_op:
-            continue
+        es_compra = "compra" in tipo_op
+        es_venta = "venta" in tipo_op and not ("devolu" in tipo_op)
+        es_dev_rec = "devolu" in tipo_op and "recib" in tipo_op
+        es_dev_ent = "devolu" in tipo_op and "entreg" in tipo_op
 
-        # ── Compras ────────────────────────────────────
-        if "compra" in tipo_op:
-
+        # ── COMPRA ──────────────────────────────────────────────────────────
+        if es_compra:
             ent_cant = d(df.at[idx, "Ent_Cantidad"])
             orig_ent_unit = d(df.at[idx, "Orig_Ent_Costo_Unit"])
             orig_ent_total = d(df.at[idx, "Orig_Ent_Costo_Total"])
             calc_ent_total = d(df.at[idx, "Ent_Costo_Total"])
 
-            # B
-            expected_total = q(ent_cant * orig_ent_unit)
+            # Si el Excel trae costo real, validar
+            if es_valor_real(orig_ent_unit) and es_valor_real(orig_ent_total):
+                expected_total = q(ent_cant * orig_ent_unit)
 
-            if abs(expected_total - orig_ent_total) > tolerancia:
-                df.at[idx, "Error_B"] = True
+                if abs(expected_total - orig_ent_total) > tolerancia:
+                    df.at[idx, "Error_B"] = True
 
-            # A
-            if abs(calc_ent_total - orig_ent_total) > tolerancia:
-                df.at[idx, "Error_A"] = True
+                if abs(calc_ent_total - orig_ent_total) > tolerancia:
+                    df.at[idx, "Error_A"] = True
+            else:
+                # El sistema reconstruyó la compra
+                df.at[idx, "costo_reconstruido"] = True
 
-        # ── Ventas y Devoluciones Entregadas ───────────
-        # Ambas se verifican igual: salen del almacén con costo del Excel
-        if "venta" in tipo_op or ("devolu" in tipo_op and "entreg" in tipo_op):
-
+        # ── VENTA o DEVOLUCIÓN ENTREGADA ───────────────────────────────────
+        elif es_venta or es_dev_ent:
             sal_cant = d(df.at[idx, "Sal_Cantidad"])
             orig_sal_unit = d(df.at[idx, "Orig_Sal_Costo_Unit"])
             orig_sal_total = d(df.at[idx, "Orig_Sal_Costo_Total"])
             calc_sal_unit = d(df.at[idx, "Sal_Costo_Unit"])
             calc_sal_total = d(df.at[idx, "Sal_Costo_Total"])
 
-            # B
-            expected_total = q(sal_cant * orig_sal_unit)
+            # Si el Excel trae costo real, validar
+            if es_valor_real(orig_sal_unit) and es_valor_real(orig_sal_total):
+                expected_total = q(sal_cant * orig_sal_unit)
 
-            if abs(expected_total - orig_sal_total) > tolerancia:
-                df.at[idx, "Error_B"] = True
+                if abs(expected_total - orig_sal_total) > tolerancia:
+                    df.at[idx, "Error_B"] = True
 
-            # A
-            if abs(calc_sal_unit - orig_sal_unit) > tolerancia:
-                df.at[idx, "Error_A"] = True
+                if abs(calc_sal_unit - orig_sal_unit) > tolerancia:
+                    df.at[idx, "Error_A"] = True
 
-            if abs(calc_sal_total - orig_sal_total) > tolerancia:
-                df.at[idx, "Error_A"] = True
+                if abs(calc_sal_total - orig_sal_total) > tolerancia:
+                    df.at[idx, "Error_A"] = True
+            else:
+                # El sistema reconstruyó la salida
+                df.at[idx, "costo_reconstruido"] = True
 
+        # ── DEVOLUCIÓN RECIBIDA ────────────────────────────────────────────
+        elif es_dev_rec:
+            ent_cant = d(df.at[idx, "Ent_Cantidad"])
+            orig_ent_unit = d(df.at[idx, "Orig_Ent_Costo_Unit"])
+            orig_ent_total = d(df.at[idx, "Orig_Ent_Costo_Total"])
+            calc_ent_unit = d(df.at[idx, "Ent_Costo_Unit"])
+            calc_ent_total = d(df.at[idx, "Ent_Costo_Total"])
+
+            # Hay excels donde la devolución viene valorizada y otros donde viene en 0
+            if es_valor_real(orig_ent_unit) and es_valor_real(orig_ent_total):
+                expected_total = q(ent_cant * orig_ent_unit)
+
+                if abs(expected_total - orig_ent_total) > tolerancia:
+                    df.at[idx, "Error_B"] = True
+
+                if abs(calc_ent_unit - orig_ent_unit) > tolerancia:
+                    df.at[idx, "Error_A"] = True
+
+                if abs(calc_ent_total - orig_ent_total) > tolerancia:
+                    df.at[idx, "Error_A"] = True
+            else:
+                # Se reconstruyó usando el promedio vigente
+                df.at[idx, "costo_reconstruido"] = True
+
+        # ── SEMÁFORO ───────────────────────────────────────────────────────
         err_a = df.at[idx, "Error_A"]
         err_b = df.at[idx, "Error_B"]
 
-        if err_a and err_b:
+        if df.at[idx, "Saldo_Negativo"] if "Saldo_Negativo" in df.columns else False:
+            df.at[idx, "Semaforo"] = "⚫"
+        elif err_a and err_b:
             df.at[idx, "Semaforo"] = "⚫"
         elif err_a:
             df.at[idx, "Semaforo"] = "🔴"

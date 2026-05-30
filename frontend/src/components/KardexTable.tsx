@@ -45,27 +45,26 @@ type TooltipInfo = {
 };
 
 const getSemaforo = (row: KardexRow) => {
-
-  // Caso más grave
+  
+  // Más grave: no hay stock suficiente
   if (row.saldo_negativo) return "🔴";
 
-  // Sin saldo inicial
-  if (row.sin_saldo_inicial) return "⚫";
-
-  // Ambos errores
+  // Ambos problemas
   if (row.error_a && row.error_b) return "⚫";
 
-  // Error matemático en el Excel original
-  if (row.error_b) return "🔴";
+  // El Excel original ya venía mal
+  if (row.error_a) return "🔴";
 
-  // Diferencia entre cálculo sistema vs Excel
-  if (row.error_a) return "🟡";
+  // El sistema reconstruyó porque el Excel venía incompleto o diferente
+  if (row.error_b) return "🟡";
 
-  return "🟢";
+  // Dato reconstruido pero válido
+  if (row.costo_reconstruido) return  "🟦";
+
+  return console.log(row), "🟢";
 };
 
 const getRowTooltip = (row: KardexRow): TooltipInfo | null => {
-
   if (row.saldo_negativo) {
     return {
       emoji: "🔴",
@@ -75,41 +74,39 @@ const getRowTooltip = (row: KardexRow): TooltipInfo | null => {
     };
   }
 
-  if (row.sin_saldo_inicial) {
-    return {
-      emoji: "⚫",
-      title: "Sin Saldo Inicial",
-      description:
-        "El producto no tiene saldo inicial registrado.",
-    };
-  }
-
   if (row.error_a && row.error_b) {
     return {
       emoji: "⚫",
       title: "Inconsistencia Completa",
       description:
-        "El Excel original presenta inconsistencias y además el cálculo recalculado difiere del sistema.",
+        "El Excel original presenta inconsistencias internas y además el cálculo del sistema difiere del valor original.",
     };
   }
 
-  // Excel original inconsistente
-  if (row.error_b) {
+  if (row.error_a) {
     return {
       emoji: "🔴",
       title: "Inconsistencia en Excel",
       description:
-        "El Excel original presenta diferencias matemáticas entre cantidad, costo unitario y costo total.",
+        "El Excel original presenta diferencias entre cantidad, costo unitario y costo total.",
     };
   }
 
-  // Sistema recalculó diferente
-  if (row.error_a) {
+  if (row.error_b) {
     return {
       emoji: "🟡",
-      title: "Diferencia de Cálculo",
+      title: "Dato Recalculado",
       description:
-        "El sistema recalculó valores diferentes a los registrados en el Excel original.",
+        "El valor original del Excel estaba vacío, en cero o incompleto, por lo que el sistema reconstruyó el costo usando el promedio vigente.",
+    };
+  }
+
+  if (row.costo_reconstruido) {
+    return {
+      emoji: "🟦",
+      title: "Costo Reconstruido",
+      description:
+        "El sistema completó automáticamente el costo porque el Excel original no traía un valor confiable para esta operación.",
     };
   }
 
