@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import Sidebar from '../components/Sidebar'
 import ModalSaldoInicial from '../components/ModalSaldoInicial'
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -15,63 +15,17 @@ interface Saldo {
   costo_total: number
 }
 
-/* ═══════════════════════════ Icons ═══════════════════════════ */
-const IconBox = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
-  </svg>
-)
-const IconGrid = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-  </svg>
-)
-const IconUpload = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-  </svg>
-)
-const IconHistory = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>
-  </svg>
-)
-const IconList = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-  </svg>
-)
-const IconShield = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-  </svg>
-)
-const IconDownload = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-  </svg>
-)
-const IconSaldos = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-  </svg>
-)
-const IconProducts = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-  </svg>
-)
-const IconPlus = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-)
+/* ═══ Icons (solo los de esta página) ═══ */
 const IconSpinner = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ animation: 'kspin 1s linear infinite' }}>
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/>
     <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
     <style>{`@keyframes kspin{to{transform:rotate(360deg)}}`}</style>
+  </svg>
+)
+const IconPlus = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
 )
 const IconEdit = () => (
@@ -92,100 +46,7 @@ const IconSearch = () => (
   </svg>
 )
 
-/* ═══════════════════════════ Sidebar ═══════════════════════════ */
-const SIDEBAR_W = 200
-
-const Sidebar = ({ onNavigate, currentPath, onAgregarSaldo }: {
-  onNavigate:     (p: string) => void
-  currentPath:    string
-  onAgregarSaldo: () => void
-}) => {
-  const navItem = (label: string, icon: React.ReactNode, path: string, active: boolean) => (
-    <button
-      type="button"
-      onClick={() => onNavigate(path)}
-      style={{
-        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-        padding: '6px 10px', borderRadius: 6, border: 'none',
-        background: active ? 'rgba(56,139,221,0.15)' : 'transparent',
-        color: active ? '#60a5fa' : '#4a6a8a',
-        fontSize: 12, fontWeight: active ? 600 : 400,
-        cursor: 'pointer', fontFamily: 'inherit',
-        textAlign: 'left' as const,
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
-    >
-      <span style={{ color: active ? '#60a5fa' : '#3a5a7a', flexShrink: 0 }}>{icon}</span>
-      {label}
-      {active && <span style={{ marginLeft: 'auto', width: 3, height: 14, background: '#3b82f6', borderRadius: 2 }} />}
-    </button>
-  )
-
-  return (
-    <aside style={{
-      width: SIDEBAR_W, flexShrink: 0,
-      background: '#080e1c',
-      borderRight: '1px solid rgba(56,139,221,0.1)',
-      padding: '12px 10px',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 4px 16px' }}>
-        <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
-          <IconBox />
-        </div>
-        <div>
-          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 700, color: '#e2e8f0', letterSpacing: '.08em' }}>KARDEX</div>
-          <div style={{ fontSize: 9, color: '#2a4a6a', letterSpacing: '.1em' }}>Sistema CPP</div>
-        </div>
-      </div>
-
-      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.15em', color: '#1e3a5a', textTransform: 'uppercase' as const, padding: '6px 10px 4px' }}>Principal</div>
-      {navItem('Dashboard',  <IconGrid />,    '/',          false)}
-      {navItem('Procesar',   <IconUpload />,  '/',          currentPath === '/')}
-      {navItem('Actividad',  <IconHistory />, '/historial',  currentPath === '/historial')}
-
-      <div style={{ height: 1, background: 'rgba(56,139,221,0.08)', margin: '10px 0' }} />
-
-      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.15em', color: '#1e3a5a', textTransform: 'uppercase' as const, padding: '6px 10px 4px' }}>Análisis</div>
-      {navItem('Movimientos',  <IconList />,     '/', false)}
-      {navItem('Verificación', <IconShield />,   '/', false)}
-      {navItem('Exportar',     <IconDownload />, '/', false)}
-
-      <div style={{ height: 1, background: 'rgba(56,139,221,0.08)', margin: '10px 0' }} />
-
-      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.15em', color: '#1e3a5a', textTransform: 'uppercase' as const, padding: '6px 10px 4px' }}>Sistema</div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <div style={{ flex: 1 }}>
-          {navItem('Saldos', <IconSaldos />, '/saldos', currentPath === '/saldos')}
-        </div>
-        <button
-          type="button"
-          onClick={onAgregarSaldo}
-          title="Agregar saldo inicial manual"
-          style={{
-            flexShrink: 0,
-            width: 22, height: 22, borderRadius: 5,
-            border: '1px solid rgba(245,158,11,0.3)',
-            background: 'rgba(245,158,11,0.08)',
-            color: '#f59e0b',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.18)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.08)' }}
-        >
-          <IconPlus />
-        </button>
-      </div>
-
-      {navItem('Productos', <IconProducts />, '/', false)}
-    </aside>
-  )
-}
-
-/* ═══ Checkbox (copiado de Historial) ═══ */
+/* ═══ Checkbox ═══ */
 const Checkbox = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
   <span
     onClick={e => { e.stopPropagation(); onChange() }}
@@ -216,9 +77,6 @@ const fmtFecha = (f: string) => {
 
 /* ── Página ─────────────────────────────────────────── */
 export default function SaldosIniciales() {
-  const navigate = useNavigate()
-  const location = useLocation()
-
   const [saldos,        setSaldos]        = useState<Saldo[]>([])
   const [busqueda,      setBusqueda]      = useState('') // Nuevo estado para la búsqueda
   const [loading,       setLoading]       = useState(true)
@@ -227,18 +85,17 @@ export default function SaldosIniciales() {
   const [saldoEditando, setSaldoEditando] = useState<Saldo | null>(null)
   const [mensaje,       setMensaje]       = useState<string | null>(null)
 
-  //NUEVO: estados para selección múltiple
+  //estados para selección múltiple
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [eliminando,  setEliminando]  = useState(false)
 
-  /* ── Fetch ──────────────────────────────────────────── */
   const fetchSaldos = async () => {
     setLoading(true)
     try {
       const res = await fetch(`${API}/api/v1/saldos/`)
       if (!res.ok) throw new Error('Error al cargar saldos')
       setSaldos(await res.json())
-      setSelectedIds(new Set())   // limpiar selección al recargar
+      setSelectedIds(new Set())
     } catch (e) {
       setError((e as Error).message)
     } finally {
@@ -355,11 +212,7 @@ export default function SaldosIniciales() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: '#07101e', fontFamily: "'Inter', sans-serif", color: '#c8ddef' }}>
 
-      <Sidebar
-        onNavigate={navigate}
-        currentPath={location.pathname}
-        onAgregarSaldo={() => { setSaldoEditando(null); setModalOpen(true) }}
-      />
+      <Sidebar onAgregarSaldo={() => { setSaldoEditando(null); setModalOpen(true) }} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
