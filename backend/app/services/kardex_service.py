@@ -92,12 +92,18 @@ class KardexService:
         print(f"⏱️  [5] Verificación: {time.time() - t0:.2f}s")
 
         # ── 6. Determinar estado ──────────────────────────────────────────────
-        tiene_alertas = (
+        tiene_saldo_negativo = len(alertas.saldo_negativo) > 0
+        tiene_alertas_leves  = (
             len(alertas.sin_saldo_inicial) > 0 or
-            len(alertas.saldo_negativo) > 0 or
             int((df_all["Semaforo"] != "🟢").sum()) > 0
         )
-        estado = "con_alertas" if tiene_alertas else "procesado"
+
+        if tiene_saldo_negativo:
+            estado = "error"
+        elif tiene_alertas_leves:
+            estado = "con_alertas"
+        else:
+            estado = "procesado"
 
         # ── 7. Persistir en BD ────────────────────────────────────────────────
         t0 = time.time()
@@ -311,10 +317,6 @@ class KardexService:
         return saldos
 
     async def _persistir_saldos_iniciales(self, saldos: dict) -> None:
-        """
-        🚀 OPTIMIZADO: trae todos los productos en una sola query.
-            FIX: usa Decimal(str()) para preservar todos los decimales
-        """
         from datetime import date as date_type
 
         codigos = list(saldos.keys())

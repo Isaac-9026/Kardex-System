@@ -310,7 +310,13 @@ export default function Kardex() {
   }, [id])
 
   const handleExportar = () =>
-    descargarExcel(codigo || undefined, filtroFecha.fecha_desde, filtroFecha.fecha_hasta)
+  descargarExcel(
+    codigo || undefined,
+    filtroFecha.anio,
+    filtroFecha.mes,
+    filtroFecha.fecha_desde,
+    filtroFecha.fecha_hasta,
+  )
 
   // ═══ Imprimir (con preparación de todas las filas) ═══
   const handleImprimir = () => {
