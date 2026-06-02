@@ -55,4 +55,7 @@ class MovimientoResponse(MovimientoBase):
     
     creado_en: datetime
 
+    # NUEVO: identifica la fila sintética de saldo inicial
+    es_saldo_inicial: bool = False
+
     model_config = {"from_attributes": True}

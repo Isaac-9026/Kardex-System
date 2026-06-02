@@ -92,6 +92,7 @@ export interface KardexRow extends Movimiento {
   semaforo:          '🟢' | '🟡' | '🔴' | '⚫' | '🟦'
   fila:              number    // (si ya lo estás usando)
   creado_en:         string
+  es_saldo_inicial?: boolean
 }
 
 // ── Métricas resumen ──────────────────────────────────────────────────────────
