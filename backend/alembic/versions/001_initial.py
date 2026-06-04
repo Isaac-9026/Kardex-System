@@ -18,34 +18,42 @@ depends_on:    Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
 
-    # ── 1. PRODUCTOS ──────────────────────────────────────────────────────────
-    op.create_table(
-        "productos",
-        sa.Column("id",          sa.Integer(),   nullable=False),
-        sa.Column("codigo",      sa.String(20),  nullable=False),
-        sa.Column("descripcion", sa.String(255), nullable=True),
-        sa.Column("creado_en",   sa.DateTime(timezone=True),
-                  server_default=sa.text("now()"), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_productos_id",     "productos", ["id"])
-    op.create_index("ix_productos_codigo", "productos", ["codigo"], unique=True)
-
-    # ── 2. EMPRESAS ──────────────────────────────────────────────────────────
+        # ── 1. EMPRESAS ──────────────────────────────────────────────────────────
     op.create_table(
         "empresa",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("nombre", sa.String(100), nullable=False),
         sa.Column("ruc", sa.String(20), nullable=False),
         sa.Column("direccion", sa.String(300), nullable=True),
-        sa.Column("codigo_existencia", sa.String(20), nullable=True),
-        sa.Column("unidad_medida", sa.String(20), nullable=True),
         sa.Column("creado_en", sa.DateTime(timezone=True),
                 server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("ruc", name="uq_empresa_ruc")
     )
     op.create_index("ix_empresas_id", "empresa", ["id"])
+
+    # ── 2. PRODUCTOS ──────────────────────────────────────────────────────────
+    op.create_table(
+        "productos",
+        sa.Column("id",          sa.Integer(),   nullable=False),
+        sa.Column("empresa_id", sa.Integer(), nullable=False),
+        sa.Column("codigo",      sa.String(20),  nullable=False),
+        sa.Column("descripcion", sa.String(255), nullable=True),
+        sa.Column("codigo_existencia", sa.String(20), nullable=True),
+        sa.Column("unidad_medida", sa.String(20), nullable=True),
+        sa.Column("creado_en",   sa.DateTime(timezone=True),
+                  server_default=sa.text("now()"), nullable=False),
+        sa.ForeignKeyConstraint(["empresa_id"],["empresa.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_productos_id",     "productos", ["id"])
+    op.create_index("ix_productos_empresa_id", "productos",
+["empresa_id"]
+)
+    op.create_index("ix_producto_empresa_codigo", "productos", ["empresa_id", "codigo"], unique=True)
+    
+
+
 
     # ── 3. SALDOS INICIALES ───────────────────────────────────────────────────
     op.create_table(
@@ -149,5 +157,5 @@ def downgrade() -> None:
     op.drop_table("movimientos")
     op.drop_table("procesamientos")
     op.drop_table("saldos_iniciales")
-    op.drop_table("empresa")
     op.drop_table("productos")
+    op.drop_table("empresa")
