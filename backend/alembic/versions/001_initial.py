@@ -37,6 +37,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("nombre", sa.String(100), nullable=False),
         sa.Column("ruc", sa.String(20), nullable=False),
+        sa.Column("direccion", sa.String(300), nullable=True),
         sa.Column("codigo_existencia", sa.String(20), nullable=True),
         sa.Column("unidad_medida", sa.String(20), nullable=True),
         sa.Column("creado_en", sa.DateTime(timezone=True),

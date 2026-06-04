@@ -294,30 +294,35 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
       <style>{`
         @media print {
           .kardex-tbl-print {
-            font-size: 7px !important;
+            font-size: 8px !important;
             table-layout: auto !important;
             width: 100% !important;
             min-width: 0 !important;
+            border-collapse: collapse !important;
           }
           .kardex-tbl-print th,
           .kardex-tbl-print td {
             padding: 2px 3px !important;
-            font-size: 7px !important;
+            font-size: 8px !important;
             white-space: nowrap !important;
+            border: 1px solid #bbb !important;
           }
-          .kardex-tbl-print th[colspan] {
-            font-size: 7px !important;
-            padding: 3px 2px !important;
+          .kardex-tbl-print th {
+            background: #e8e8e8 !important;
+            color: black !important;
+            font-weight: 700 !important;
           }
-          .kardex-pagination-bar {
+          .kardex-tbl-print td {
+            color: black !important;
+          }
+           /* Solo ocultar # y Cód. — Entradas y Salidas SÍ se muestran */
+          .col-num, .col-cod,
+          .col-grp-num, .col-grp-cod {
             display: none !important;
           }
-          .kardex-tbl-print thead {
-            display: table-header-group !important;
-          }
-          .kardex-tbl-print tr {
-            page-break-inside: avoid !important;
-          }
+          .kardex-pagination-bar { display: none !important; }
+          .kardex-tbl-print thead { display: table-header-group !important; }
+          .kardex-tbl-print tr { page-break-inside: avoid !important; }
         }
 
         .kardex-tooltip {
@@ -348,8 +353,9 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
           <thead>
             <tr>
               {mostrarSemaforo && <th style={thDark}></th>}
-              <th style={thDark}></th>
-              <th style={thDark}></th>
+              {/* ocultar en print */}
+              <th className="col-grp-num" style={thDark}></th>
+              <th className="col-grp-cod" style={thDark}></th>
 
               <th colSpan={4} style={{ ...thGrupo, background: "#185FA5" }}>Comprobante</th>
               <th style={{ ...thGrupo, background: "#0F6E56" }}>Tipo operación</th>
@@ -360,8 +366,8 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
 
             <tr style={{ background: "#0a1929" }}>
               {mostrarSemaforo && <th style={thSub}>Est</th>}
-              <th style={thSub}>#</th>
-              <th style={thSub}>Cód.</th>
+              <th className="col-num" style={thSub}>#</th>
+              <th className="col-cod" style={thSub}>Cód.</th>
 
               <th style={thSub}>Fecha</th>
               <th style={thSub}>Tipo</th>
@@ -391,8 +397,8 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
                 return (
                   <tr key="saldo-inicial" style={{ background: "rgba(59,130,246,0.10)", borderLeft: "3px solid #3b82f6" }}>
                     {mostrarSemaforo && <td style={td}>—</td>}
-                    <td style={{ ...td, color: "#60a5fa", fontWeight: 700 }}>—</td>
-                    <td style={{ ...td, color: "#378ADD", fontWeight: 600 }}>{row.codigo}</td>
+                    <td className="col-num" style={{ ...td, color: "#60a5fa", fontWeight: 700 }}>—</td>
+                    <td className="col-cod" style={{ ...td, color: "#378ADD", fontWeight: 600 }}>{row.codigo}</td>
                     <td style={{ ...td, color: "#60a5fa" }}>{fmtFecha(row.fecha)}</td>
                     <td style={td}>—</td>
                     <td style={td}>—</td>
@@ -459,9 +465,7 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
                     }
 
                     const rowRect = e.currentTarget.getBoundingClientRect();
-                    const left = Math.max(rowRect.left + 12, 12);
-                    const top = rowRect.top + rowRect.height + 6;
-                    setTooltip({ ...info, left, top });
+                    setTooltip({ ...info, left: Math.max(rowRect.left + 12, 12), top: rowRect.top + rowRect.height + 6 });
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.background = bgBase;
@@ -474,8 +478,8 @@ const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(function Kar
                   }}
                 >
                   {mostrarSemaforo && <td style={td}>{semaforo}</td>}
-                  <td style={td}>{row.fila}</td>
-                  <td style={{ ...td, color: "#378ADD", fontWeight: 600 }}>{row.codigo}</td>
+                  <td className="col-num" style={td}>{row.fila}</td>
+                  <td className="col-cod" style={{ ...td, color: "#378ADD", fontWeight: 600 }}>{row.codigo}</td>
 
                   <td style={td}>{fmtFecha(row.fecha)}</td>
                   <td style={td}>{row.tipo_comprobante}</td>
