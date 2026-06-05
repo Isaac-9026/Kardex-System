@@ -1,5 +1,6 @@
 import io
 import pandas as pd
+from datetime import date
 
 from decimal import (
     Decimal,
@@ -157,13 +158,24 @@ def parsear_saldos_iniciales(file_bytes: bytes) -> dict:
         except Exception:
             continue
 
-        saldos[codigo] = {
+        if codigo not in saldos:
+            saldos[codigo] = []
+
+        saldos[codigo].append({
             "fecha": fecha,
             "cantidad": cantidad,
             "costo_unitario": costo_unitario,
             "costo_total": costo_total,
-        }
+        })
+        
+    for codigo in saldos:
+        saldos[codigo].sort(
+            key=lambda x: x["fecha"] or date.min
+        )
+            
     return saldos
+    
+        
 
 
 # ── Parsear movimientos ───────────────────────────────────────────────────────
@@ -353,8 +365,31 @@ def calcular_saldo_final(
         mask = df["Codigo"] == codigo
         indices = list(df[mask].index)
 
-        saldo_ini = saldos_iniciales.get(codigo)
+        saldos_producto = saldos_iniciales.get(codigo, [])
+        saldo_ini = None
 
+        primer_mov_fecha = df.loc[mask, "Fecha"].min()
+
+        
+
+        
+
+        fecha_mov = (
+            primer_mov_fecha.date()
+            if hasattr(primer_mov_fecha, "date")
+            else primer_mov_fecha
+        )
+        for saldo in saldos_producto:
+
+            fecha_saldo = saldo.get("fecha")
+            
+            if not fecha_saldo:
+                continue
+            
+            if fecha_saldo <= fecha_mov:
+                saldo_ini = saldo
+            else:
+                break
         # ── Saldo inicial ──────────────────────────────────────────────
         if saldo_ini:
             s_cant = d(saldo_ini["cantidad"])
