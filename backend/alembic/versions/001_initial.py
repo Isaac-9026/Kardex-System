@@ -71,7 +71,7 @@ def upgrade() -> None:
         sa.CheckConstraint("costo_total >= 0",    name="ck_saldo_costo_total"),
         sa.ForeignKeyConstraint(["producto_id"], ["productos.id"]),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("producto_id", name="unique_saldo_producto"),
+        sa.UniqueConstraint("producto_id", "fecha", name="unique_producto_fecha"),
     )
     op.create_index("ix_saldos_iniciales_id", "saldos_iniciales", ["id"])
 
