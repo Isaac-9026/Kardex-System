@@ -342,17 +342,30 @@ class KardexService:
         codigos       = list(saldos.keys())
         productos_map = await self.producto_repo.get_or_create_bulk(codigos, empresa_id)
 
-        for codigo, datos in saldos.items():
+        for codigo, lista_datos in saldos.items():
             producto = productos_map[codigo]
-            fecha    = datos.get("fecha") or date_type.today()
-            await self.saldo_repo.upsert(
-                producto_id    = producto.id,
-                fecha          = fecha,
-                cantidad       = Decimal(str(datos["cantidad"])),
-                costo_unitario = Decimal(str(datos["costo_unitario"])),
-                costo_total    = Decimal(str(datos["costo_total"])),
-            )
+            
+            for datos in lista_datos:
+                fecha = datos.get("fecha") or date_type.today()
+                
+                # Obtenemos los valores en crudo
+                cantidad_raw = Decimal(str(datos["cantidad"]))
+                costo_uni_raw = Decimal(str(datos["costo_unitario"]))
+                costo_tot_raw = Decimal(str(datos["costo_total"]))
 
+                # Saneamiento: Si el valor es negativo por un error de precisión, lo forzamos a 0.0
+                cantidad_limpia = max(Decimal("0.0"), cantidad_raw)
+                costo_uni_limpio = max(Decimal("0.0"), costo_uni_raw)
+                costo_tot_limpio = max(Decimal("0.0"), costo_tot_raw)
+
+                await self.saldo_repo.upsert(
+                    producto_id    = producto.id,
+                    fecha          = fecha,
+                    cantidad       = cantidad_limpia,
+                    costo_unitario = costo_uni_limpio,
+                    costo_total    = costo_tot_limpio,
+                )
+                
     async def _persistir_movimientos(
         self,
         df:               pd.DataFrame,

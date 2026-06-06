@@ -119,15 +119,19 @@ class SaldoService:
 
     # ── Helpers privados ──────────────────────────────────────────────────────
     def _to_response(self, saldo) -> SaldoInicialResponse:
+        # Definimos el formato deseado: '0.00' para 2 decimales, o '0.0000' para 4.
+        formato = Decimal('0.0000')
+        
         return SaldoInicialResponse(
             id             = saldo.id,
+            empresa_id     = saldo.producto.empresa_id,
             producto_id    = saldo.producto_id,
             codigo         = saldo.producto.codigo if saldo.producto else "",
             descripcion    = saldo.producto.descripcion if saldo.producto else None,
             fecha          = saldo.fecha,
-            cantidad       = saldo.cantidad,
-            costo_unitario = saldo.costo_unitario,
-            costo_total    = saldo.costo_total,
+            cantidad       = saldo.cantidad.quantize(formato),       
+            costo_unitario = saldo.costo_unitario.quantize(formato), 
+            costo_total    = saldo.costo_total.quantize(formato),
             creado_en      = saldo.creado_en,
         )
 
