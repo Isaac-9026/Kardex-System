@@ -59,6 +59,8 @@ class ProductoService:
         producto = await self.producto_repo.update(
             producto_id = producto_id,
             descripcion = data.descripcion,
+            codigo_existencia=data.codigo_existencia,
+            unidad_medida=data.unidad_medida,
         )
         if not producto:
             raise KardexException(f"Producto #{producto_id} no encontrado.", status_code=404)
