@@ -1,25 +1,25 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 
-class EmpresaBase(BaseModel):
-    nombre:            str
-    ruc:               str
-    direccion:         Optional[str] = None
-
-
-class EmpresaCreate(EmpresaBase):
-    pass
+class EmpresaCreate(BaseModel):
+    nombre:    str
+    ruc:       str
+    direccion: Optional[str] = None
 
 
 class EmpresaUpdate(BaseModel):
-    nombre:            Optional[str] = None
-    ruc:               Optional[str] = None
-    direccion:         Optional[str] = None
+    nombre:    Optional[str] = None
+    ruc:       Optional[str] = None
+    direccion: Optional[str] = None
 
 
-class EmpresaResponse(EmpresaBase):
-    id: int
+class EmpresaResponse(BaseModel):
+    id:        int
+    nombre:    str
+    ruc:       str
+    direccion: Optional[str] = None
+    creado_en: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
