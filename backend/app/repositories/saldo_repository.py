@@ -42,7 +42,8 @@ class SaldoRepository:
 
         result = await self.db.execute(
             select(SaldoInicial)
-            .options(selectinload(SaldoInicial.producto))
+            .options(selectinload(SaldoInicial.producto)
+                    .selectinload(Producto.empresa))
             .where(
              SaldoInicial.producto_id == producto_id
             )
@@ -76,7 +77,8 @@ class SaldoRepository:
     ) -> list[SaldoInicial]:
         result = await self.db.execute(
             select(SaldoInicial)
-            .options(selectinload(SaldoInicial.producto))
+            .options(selectinload(SaldoInicial.producto)
+                     .selectinload(Producto.empresa))
             .order_by(SaldoInicial.producto_id)
             .limit(limit)
             .offset(offset)
