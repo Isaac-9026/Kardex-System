@@ -1,59 +1,57 @@
-from fastapi import HTTPException
-
-from app.models.empresa import Empresa
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.empresa_repository import EmpresaRepository
-from app.schemas.empresa import EmpresaCreate, EmpresaUpdate
+from app.schemas.empresa import EmpresaCreate, EmpresaUpdate, EmpresaResponse
+from app.exceptions import KardexException
 
 
 class EmpresaService:
 
-    def __init__(self, repository: EmpresaRepository):
-        self.repository = repository
+    def __init__(self, db: AsyncSession):
+        self.db           = db
+        self.empresa_repo = EmpresaRepository(db)
 
-    async def get_all(self):
-        return await self.repository.get_all()
+    async def listar(self) -> list[EmpresaResponse]:
+        empresas = await self.empresa_repo.get_all()
+        return [EmpresaResponse.model_validate(e) for e in empresas]
 
-    async def get_by_id(self, empresa_id: int):
-        empresa = await self.repository.get_by_id(empresa_id)
-
+    async def obtener(self, empresa_id: int) -> EmpresaResponse:
+        empresa = await self.empresa_repo.get_by_id(empresa_id)
         if not empresa:
-            raise HTTPException(
-                status_code=404,
-                detail="Empresa no encontrada"
-            )
+            raise KardexException(f"Empresa #{empresa_id} no encontrada.", status_code=404)
+        return EmpresaResponse.model_validate(empresa)
 
-        return empresa
-
-    async def create(self, payload: EmpresaCreate):
-        existe = await self.repository.get_by_ruc(
-            payload.ruc
+    async def crear(self, data: EmpresaCreate) -> EmpresaResponse:
+        existente = await self.empresa_repo.get_by_ruc(data.ruc)
+        if existente:
+            raise KardexException(f"Ya existe una empresa con RUC {data.ruc}.", status_code=400)
+        empresa = await self.empresa_repo.crear(
+            nombre    = data.nombre,
+            ruc       = data.ruc,
+            direccion = data.direccion,
         )
+        return EmpresaResponse.model_validate(empresa)
 
-        if existe:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Ya existe una empresa con RUC {payload.ruc}"
-            )
+    async def actualizar(self, empresa_id: int, data: EmpresaUpdate) -> EmpresaResponse:
+        if data.ruc:
+            existente = await self.empresa_repo.get_by_ruc(data.ruc)
+            # Si existe una empresa con ese RUC, y NO es la empresa que estamos editando:
+            if existente and existente.id != empresa_id:
+                raise KardexException(
+                    f"Ya existe una empresa con RUC {data.ruc}.",
+                    status_code=400
+                )
+                
+        empresa = await self.empresa_repo.update(
+            empresa_id = empresa_id,
+            nombre     = data.nombre,
+            ruc        = data.ruc,
+            direccion  = data.direccion,
+        )
+        if not empresa:
+            raise KardexException(f"Empresa #{empresa_id} no encontrada.", status_code=404)
+        return EmpresaResponse.model_validate(empresa)
 
-        empresa = Empresa(**payload.model_dump())
-
-        return await self.repository.create(empresa)
-
-    async def update(
-        self,
-        empresa_id: int,
-        payload: EmpresaUpdate
-    ):
-        empresa = await self.get_by_id(empresa_id)
-
-        for campo, valor in payload.model_dump(
-            exclude_none=True
-        ).items():
-            setattr(empresa, campo, valor)
-
-        return await self.repository.update(empresa)
-
-    async def delete(self, empresa_id: int):
-        empresa = await self.get_by_id(empresa_id)
-
-        await self.repository.delete(empresa)
+    async def eliminar(self, empresa_id: int) -> None:
+        ok = await self.empresa_repo.delete(empresa_id)
+        if not ok:
+            raise KardexException(f"Empresa #{empresa_id} no encontrada.", status_code=404)

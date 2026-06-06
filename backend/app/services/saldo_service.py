@@ -13,8 +13,8 @@ from decimal import Decimal
 class SaldoService:
 
     def __init__(self, db: AsyncSession):
-        self.db           = db
-        self.saldo_repo   = SaldoRepository(db)
+        self.db            = db
+        self.saldo_repo    = SaldoRepository(db)
         self.producto_repo = ProductoRepository(db)
 
     # ── Listar ────────────────────────────────────────────────────────────────
@@ -35,14 +35,10 @@ class SaldoService:
 
     # ── Crear ─────────────────────────────────────────────────────────────────
     async def crear(self, data: SaldoInicialCreate) -> SaldoInicialConAdvertencia:
-        """
-        Crea o actualiza el saldo inicial de un producto.
-        Si el producto no existe lo crea automáticamente.
-        """
         producto = await self.producto_repo.get_or_create(
-            empresa_id=data.empresa_id,
-            codigo=data.codigo,
-            descripcion=data.descripcion,
+            codigo     = data.codigo,
+            empresa_id = data.empresa_id,
+            descripcion = data.descripcion,
         )
 
         costo_total = data.costo_total or Decimal(str(
@@ -81,28 +77,21 @@ class SaldoService:
             descripcion    = data.descripcion,
         )
 
-
+        if data.descripcion is not None and saldo and saldo.producto_id:
+            await self.producto_repo.update(
+                producto_id = saldo.producto_id,
+                descripcion = data.descripcion,
+            )
+            saldo = await self.saldo_repo.get_by_id(saldo_id)
 
         return SaldoInicialConAdvertencia(
             **self._to_response(saldo).model_dump(),
             advertencia = self._advertencia(total_proc),
         )
 
-    # ── Eliminar ──────────────────────────────────────────────────────────────
-    async def eliminar(self, saldo_id: int) -> dict:
-        total_proc = await self.saldo_repo.delete(saldo_id)
-        return {
-            "mensaje":     f"Saldo inicial #{saldo_id} eliminado correctamente.",
-            "advertencia": self._advertencia(total_proc),
-        }
-    
-    # ELIMINAR MULTIPLE
+    # ── Eliminar múltiple ─────────────────────────────────────────────────────
     async def eliminar_multiple(self, ids: list[int]) -> dict:
-        """
-        Elimina varios saldos iniciales a la vez.
-        Cuenta cuántos tenían procesamientos asociados.
-        """
-        eliminados = 0
+        eliminados         = 0
         con_procesamientos = 0
 
         for saldo_id in ids:
@@ -112,7 +101,6 @@ class SaldoService:
                 if total_proc > 0:
                     con_procesamientos += 1
             except Exception:
-                # Si un ID no existe o falla, lo saltamos y seguimos
                 continue
 
         advertencia = None
