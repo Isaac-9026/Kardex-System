@@ -14,43 +14,64 @@ class ProductoRepository:
     async def get_by_id(self, producto_id: int) -> Producto | None:
         result = await self.db.execute(
             select(Producto)
-            .options(selectinload(Producto.saldo_inicial))
+            .options(selectinload(Producto.empresa), selectinload(Producto.saldos_iniciales))
             .where(Producto.id == producto_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_by_codigo(self, codigo: str) -> Producto | None:
+    async def get_by_empresa_codigo(
+        self,
+        empresa_id: int,
+            codigo: str,
+    ) -> Producto | None:
         result = await self.db.execute(
             select(Producto)
-            .options(selectinload(Producto.saldo_inicial))
-            .where(Producto.codigo == codigo)
+            .where(
+                Producto.empresa_id == empresa_id,
+                Producto.codigo == codigo,
+            )
         )
+
         return result.scalar_one_or_none()
 
     async def get_or_create(
         self,
+        empresa_id:  int,
         codigo:      str,
         descripcion: str | None = None,
+        codigo_existencia: str | None = None,
+        unidad_medida: str | None = None,
     ) -> Producto:
-        producto = await self.get_by_codigo(codigo)
+        producto = await self.get_by_empresa_codigo(empresa_id, codigo)
         if not producto:
-            producto = Producto(codigo=codigo, descripcion=descripcion)
+            producto = Producto(
+                empresa_id=empresa_id,
+                codigo=codigo,
+                descripcion=descripcion,
+                codigo_existencia=codigo_existencia,
+                unidad_medida=unidad_medida,
+            )
             self.db.add(producto)
             await self.db.flush()
         return producto
 
     async def get_all(
         self,
+        empresa_id: int | None = None,
         limit:  int = 100,
         offset: int = 0,
         search: str | None = None,
     ) -> list[Producto]:
         q = (
             select(Producto)
-            .options(selectinload(Producto.saldo_inicial))
+            .options(selectinload(Producto.empresa), selectinload(Producto.saldos_iniciales))
             .order_by(Producto.codigo)
             .limit(limit)
             .offset(offset)
+        )
+        if empresa_id:
+            query = query.where(
+        Producto.empresa_id == empresa_id
         )
         if search:
             q = q.where(Producto.codigo.ilike(f"%{search}%"))
@@ -68,11 +89,20 @@ class ProductoRepository:
         self,
         producto_id: int,
         descripcion: str | None,
+        codigo_existencia: str | None,
+        unidad_medida: str | None,
     ) -> Producto | None:
         producto = await self.get_by_id(producto_id)
         if not producto:
             return None
-        producto.descripcion = descripcion
+        if descripcion is not None:
+            producto.descripcion = descripcion
+
+        if codigo_existencia is not None:
+            producto.codigo_existencia = codigo_existencia
+
+        if unidad_medida is not None:
+            producto.unidad_medida = unidad_medida
         await self.db.flush()
         return producto
 
@@ -83,7 +113,11 @@ class ProductoRepository:
         )
         return result.scalar() or 0
     
+    
     async def get_or_create_bulk(self, codigos: list[str]) -> dict[str, Producto]:
+        raise NotImplementedError(
+        "get_or_create_bulk debe adaptarse a empresa_id"
+    )
         """
         Versión optimizada para procesar muchos códigos a la vez.
         Crea los que falten en una sola operación.

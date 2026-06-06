@@ -11,8 +11,6 @@ class ProductoCreate(BaseModel):
     unidad_medida: str | None = None
     
 class ProductoUpdate(BaseModel):
-    empresa_id: Optional[int] = None
-    codigo: Optional[str] = None
     descripcion: Optional[str] = None
     codigo_existencia: Optional[str] = None
     unidad_medida: Optional[str] = None
@@ -32,11 +30,11 @@ class ProductoResponse(BaseModel):
     id:            int
     empresa_id:    int
     codigo:        str
-    descripcion:   Optional[str]
+    descripcion:   str | None
     codigo_existencia: str | None
     unidad_medida: str | None
     creado_en:     datetime
-    saldo_inicial: Optional[SaldoInicialResumen] = None
+    saldos_iniciales: list[SaldoInicialResumen] = []
 
     model_config = {"from_attributes": True}
 
