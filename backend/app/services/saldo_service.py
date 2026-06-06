@@ -40,8 +40,9 @@ class SaldoService:
         Si el producto no existe lo crea automáticamente.
         """
         producto = await self.producto_repo.get_or_create(
-            codigo      = data.codigo,
-            descripcion = data.descripcion,
+            empresa_id=data.empresa_id,
+            codigo=data.codigo,
+            descripcion=data.descripcion,
         )
 
         costo_total = data.costo_total or Decimal(str(
@@ -80,14 +81,7 @@ class SaldoService:
             descripcion    = data.descripcion,
         )
 
-        # Actualizar descripcion del producto si viene en el payload
-        if data.descripcion is not None and saldo and saldo.producto_id:
-            await self.producto_repo.update(
-                producto_id = saldo.producto_id,
-                descripcion = data.descripcion,
-            )
-            # Recargar saldo para que tenga la descripcion actualizada.
-            saldo = await self.saldo_repo.get_by_id(saldo_id)
+
 
         return SaldoInicialConAdvertencia(
             **self._to_response(saldo).model_dump(),

@@ -3,6 +3,7 @@ from sqlalchemy import select, delete, func
 from sqlalchemy.orm import selectinload
 from app.models.saldo_inicial import SaldoInicial
 from app.models.movimiento import Movimiento
+from app.models.producto import Producto
 from app.exceptions import KardexException
 from datetime import date
 from decimal import Decimal
@@ -19,17 +20,53 @@ class SaldoRepository:
     async def get_by_id(self, saldo_id: int) -> SaldoInicial | None:
         result = await self.db.execute(
             select(SaldoInicial)
-            .options(selectinload(SaldoInicial.producto))
+            .options(
+                selectinload(SaldoInicial.producto)
+                .selectinload(Producto.empresa))
             .where(SaldoInicial.id == saldo_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_by_producto(self, producto_id: int) -> SaldoInicial | None:
+    async def get_by_producto_fecha(self, producto_id: int, fecha: date,) -> SaldoInicial | None:
         result = await self.db.execute(
             select(SaldoInicial)
             .options(selectinload(SaldoInicial.producto))
-            .where(SaldoInicial.producto_id == producto_id)
+            .where(SaldoInicial.producto_id == producto_id, SaldoInicial.fecha == fecha,)
         )
+        return result.scalar_one_or_none()
+    
+    async def get_by_producto(
+        self,
+        producto_id: int,
+        ) -> list[SaldoInicial]:
+
+        result = await self.db.execute(
+            select(SaldoInicial)
+            .options(selectinload(SaldoInicial.producto))
+            .where(
+             SaldoInicial.producto_id == producto_id
+            )
+            .order_by(SaldoInicial.fecha.desc())
+        )
+
+        return list(result.scalars().all())
+        
+    async def get_saldo_vigente(
+        self,
+        producto_id: int,
+        fecha_hasta: date,
+        ) -> SaldoInicial | None:
+
+        result = await self.db.execute(
+            select(SaldoInicial)
+            .where(
+                SaldoInicial.producto_id == producto_id,
+                SaldoInicial.fecha <= fecha_hasta,
+            )
+            .order_by(SaldoInicial.fecha.desc())
+            .limit(1)
+        )
+
         return result.scalar_one_or_none()
 
     async def get_all(
@@ -75,9 +112,8 @@ class SaldoRepository:
         """
         total_proc = await self.count_procesamientos(producto_id)
 
-        saldo = await self.get_by_producto(producto_id)
+        saldo = await self.get_by_producto_fecha(producto_id, fecha,)
         if saldo:
-            saldo.fecha          = fecha
             saldo.cantidad       = cantidad
             saldo.costo_unitario = costo_unitario
             saldo.costo_total    = costo_total

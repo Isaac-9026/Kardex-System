@@ -5,6 +5,7 @@ from typing import Optional
 
 
 class SaldoInicialCreate(BaseModel):
+    empresa_id:     int
     codigo:         str
     descripcion:    Optional[str]    = None
     fecha:          date
@@ -40,6 +41,7 @@ class SaldoInicialUpdate(BaseModel):
 class SaldoInicialResponse(BaseModel):
     id:             int
     producto_id:    int
+    empresa_id:     int
     codigo:         str
     descripcion:    Optional[str]
     fecha:          date
