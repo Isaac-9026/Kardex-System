@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 
 interface SaldoPayload {
+  empresa_id:     number
   codigo:         string
   descripcion:    string
   fecha:          string
@@ -21,12 +22,27 @@ interface SaldoExistente {
 
 interface Props {
   open:          boolean
+  empresaId:     number
   onClose:       () => void
   onGuardado?:   (codigo: string) => void //  Actualizado
   saldoEditar?:  SaldoExistente | null
 }
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+// ✅ FIX: Función para traducir los errores de FastAPI de Array/Objeto a Texto legible
+function parseFastApiError(data: any, status: number): string {
+  if (!data?.detail) return `Error ${status}`
+  if (typeof data.detail === 'string') return data.detail
+  if (Array.isArray(data.detail)) {
+    // Si es un error de validación (422), extraemos el nombre del campo y el mensaje
+    return data.detail.map((err: any) => {
+      const campo = err.loc?.[err.loc.length - 1] || 'Campo'
+      return `Error en ${campo}: ${err.msg}`
+    }).join(' | ')
+  }
+  return JSON.stringify(data.detail)
+}
 
 async function crearSaldo(payload: SaldoPayload) {
   const res = await fetch(`${API}/api/v1/saldos/`, {
@@ -35,7 +51,7 @@ async function crearSaldo(payload: SaldoPayload) {
     body:    JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data?.detail ?? `Error ${res.status}`)
+  if (!res.ok) throw new Error(parseFastApiError(data, res.status))
   return data
 }
 
@@ -46,7 +62,7 @@ async function editarSaldo(id: number, payload: Omit<SaldoPayload, 'codigo'> & {
     body:    JSON.stringify(payload),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data?.detail ?? `Error ${res.status}`)
+  if (!res.ok) throw new Error(parseFastApiError(data, res.status))
   return data
 }
 
@@ -107,7 +123,7 @@ const toNum = (v: number | string | null | undefined): number => {
 }
 
 /* ── Componente principal ─────────────────────────────────────────────────── */
-export default function ModalSaldoInicial({ open, onClose, onGuardado, saldoEditar }: Props) {
+export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado, saldoEditar }: Props) {
   const hoy        = new Date().toISOString().split('T')[0]
   const modoEditar = !!saldoEditar
 
@@ -199,6 +215,7 @@ export default function ModalSaldoInicial({ open, onClose, onGuardado, saldoEdit
       if (modoEditar && saldoEditar) {
         // PUT /saldos/{id}
         res = await editarSaldo(saldoEditar.id, {
+          empresa_id:     empresaId,
           descripcion:    descripcion.trim(),
           fecha,
           cantidad:       toNum(cantidad),
@@ -208,6 +225,7 @@ export default function ModalSaldoInicial({ open, onClose, onGuardado, saldoEdit
       } else {
         // POST /saldos/
         res = await crearSaldo({
+          empresa_id:     empresaId,
           codigo:         codigo.trim().toUpperCase(),
           descripcion:    descripcion.trim(),
           fecha,

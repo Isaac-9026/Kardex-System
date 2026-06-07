@@ -483,10 +483,11 @@ export default function SaldosIniciales() {
 
         </div>
       </div>
-
+            
       {/* Modal */}
       <ModalSaldoInicial
         open={modalOpen}
+        empresaId={1}
         onClose={() => { setModalOpen(false); setSaldoEditando(null) }}
         onGuardado={handleGuardado}
         saldoEditar={saldoEditando}
