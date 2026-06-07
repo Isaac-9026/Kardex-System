@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from app.models.saldo_inicial import SaldoInicial
-from app.models.movimiento import Movimiento
 from app.models.producto import Producto
+from app.models.movimiento import Movimiento
 from app.exceptions import KardexException
 from datetime import date
 from decimal import Decimal
@@ -20,77 +20,80 @@ class SaldoRepository:
     async def get_by_id(self, saldo_id: int) -> SaldoInicial | None:
         result = await self.db.execute(
             select(SaldoInicial)
-            .options(
-                selectinload(SaldoInicial.producto)
-                .selectinload(Producto.empresa))
+            .options(selectinload(SaldoInicial.producto))
             .where(SaldoInicial.id == saldo_id)
         )
         return result.scalar_one_or_none()
 
-    async def get_by_producto_fecha(self, producto_id: int, fecha: date,) -> SaldoInicial | None:
+    async def get_by_producto_y_fecha(
+        self,
+        producto_id: int,
+        fecha:       date,
+    ) -> SaldoInicial | None:
+        """Busca un saldo exacto por producto + fecha."""
         result = await self.db.execute(
             select(SaldoInicial)
             .options(selectinload(SaldoInicial.producto))
-            .where(SaldoInicial.producto_id == producto_id, SaldoInicial.fecha == fecha,)
+            .where(
+                SaldoInicial.producto_id == producto_id,
+                SaldoInicial.fecha       == fecha,
+            )
         )
         return result.scalar_one_or_none()
-    
-    async def get_by_producto(
-        self,
-        producto_id: int,
-        ) -> list[SaldoInicial]:
 
-        result = await self.db.execute(
-            select(SaldoInicial)
-            .options(selectinload(SaldoInicial.producto)
-                    .selectinload(Producto.empresa))
-            .where(
-             SaldoInicial.producto_id == producto_id
-            )
-            .order_by(SaldoInicial.fecha.desc())
-        )
-
-        return list(result.scalars().all())
-        
     async def get_saldo_vigente(
         self,
-        producto_id: int,
-        fecha_hasta: date,
-        ) -> SaldoInicial | None:
-
+        producto_id:             int,
+        fecha_primer_movimiento: date,
+    ) -> SaldoInicial | None:
+        """
+        Busca el saldo inicial más reciente cuya fecha
+        sea <= fecha_primer_movimiento.
+        SELECT * FROM saldos_iniciales
+        WHERE producto_id = :id AND fecha <= :fecha
+        ORDER BY fecha DESC LIMIT 1
+        """
         result = await self.db.execute(
             select(SaldoInicial)
             .where(
                 SaldoInicial.producto_id == producto_id,
-                SaldoInicial.fecha <= fecha_hasta,
+                SaldoInicial.fecha       <= fecha_primer_movimiento,
             )
             .order_by(SaldoInicial.fecha.desc())
             .limit(1)
         )
-
         return result.scalar_one_or_none()
 
     async def get_all(
         self,
-        limit:  int = 100,
-        offset: int = 0,
+        limit:       int          = 100,
+        offset:      int          = 0,
+        empresa_id:  int | None   = None,   # ✅ NUEVO: filtrar por empresa
+        producto_id: int | None   = None,   # ✅ NUEVO: historial de un producto
     ) -> list[SaldoInicial]:
-        result = await self.db.execute(
+        q = (
             select(SaldoInicial)
-            .options(selectinload(SaldoInicial.producto)
-                     .selectinload(Producto.empresa))
-            .order_by(SaldoInicial.producto_id)
+            .options(selectinload(SaldoInicial.producto))
+            .order_by(SaldoInicial.producto_id, SaldoInicial.fecha)
             .limit(limit)
             .offset(offset)
         )
+
+        if producto_id is not None:
+            # Devuelve todo el historial de fechas de ese producto
+            q = q.where(SaldoInicial.producto_id == producto_id)
+
+        elif empresa_id is not None:
+            # Filtra por empresa haciendo join a productos
+            q = (
+                q.join(Producto, SaldoInicial.producto_id == Producto.id)
+                .where(Producto.empresa_id == empresa_id)
+            )
+
+        result = await self.db.execute(q)
         return list(result.scalars().all())
 
     async def count_procesamientos(self, producto_id: int) -> int:
-        """
-        Cuenta cuántos procesamientos tienen movimientos de este producto.
-        Se usa para mostrar advertencia antes de editar o borrar.
-        No bloquea — solo informa.
-        """
         result = await self.db.execute(
             select(func.count(Movimiento.procesamiento_id.distinct()))
             .where(Movimiento.producto_id == producto_id)
@@ -108,13 +111,12 @@ class SaldoRepository:
         costo_total:    Decimal,
     ) -> tuple[SaldoInicial, int]:
         """
-        Crea o actualiza el saldo inicial de un producto.
-        Retorna (saldo, total_procesamientos) para que el servicio
-        pueda incluir la advertencia si total_procesamientos > 0.
+        Crea o actualiza el saldo de un producto para una fecha específica.
+        Permite múltiples saldos por producto (uno por fecha).
         """
         total_proc = await self.count_procesamientos(producto_id)
 
-        saldo = await self.get_by_producto_fecha(producto_id, fecha,)
+        saldo = await self.get_by_producto_y_fecha(producto_id, fecha)
         if saldo:
             saldo.cantidad       = cantidad
             saldo.costo_unitario = costo_unitario
@@ -141,18 +143,12 @@ class SaldoRepository:
         costo_total:    Decimal,
         descripcion:    str | None = None,
     ) -> tuple[SaldoInicial, int]:
-        """
-        Actualiza un saldo por su ID usando UPDATE directo.
-        Retorna (saldo, total_procesamientos) para mostrar advertencia.
-        """
         saldo = await self.get_by_id(saldo_id)
         if not saldo:
             raise KardexException(f"Saldo inicial #{saldo_id} no encontrado.", status_code=404)
 
         total_proc = await self.count_procesamientos(saldo.producto_id)
 
-        # UPDATE directo — garantizará la persistencia independiente del tracking
-        #Actualizar saldo
         await self.db.execute(
             sa_update(SaldoInicial)
             .where(SaldoInicial.id == saldo_id)
@@ -164,7 +160,6 @@ class SaldoRepository:
             )
         )
 
-        #Actualizar descripcion en productos (ya que es donde vive ese campo)
         if descripcion is not None:
             from app.models.producto import Producto
             await self.db.execute(
@@ -174,24 +169,16 @@ class SaldoRepository:
             )
 
         await self.db.flush()
-
-        #Recargar el objeto actualizado
         saldo = await self.get_by_id(saldo_id)
         return saldo, total_proc
 
     async def delete(self, saldo_id: int) -> int:
-        """
-        SE Elimina un saldo por su ID usando DELETE directo.
-        Retorna total_procesamientos para la advertencia.
-        """
-        
         saldo = await self.get_by_id(saldo_id)
         if not saldo:
             raise KardexException(f"Saldo inicial #{saldo_id} no encontrado.", status_code=404)
 
         total_proc = await self.count_procesamientos(saldo.producto_id)
 
-        # DELETE directo — evita problemas de tracking con objetos cargados via join
         await self.db.execute(
             delete(SaldoInicial).where(SaldoInicial.id == saldo_id)
         )
