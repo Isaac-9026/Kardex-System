@@ -30,7 +30,7 @@ class Movimiento(Base):
     )
 
     id:               Mapped[int]           = mapped_column(primary_key=True, index=True)
-    producto_id:      Mapped[int]           = mapped_column(ForeignKey("productos.id"),      nullable=False, index=True)
+    producto_id:      Mapped[int]           = mapped_column(ForeignKey("productos.id", ondelete="CASCADE"),      nullable=False, index=True)
     procesamiento_id: Mapped[int]           = mapped_column(ForeignKey("procesamientos.id"), nullable=False, index=True)
 
     # ── Comprobante ────────────────────────────────────────────────────────────

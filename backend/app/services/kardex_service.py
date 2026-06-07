@@ -87,7 +87,6 @@ class KardexService:
         self,
         saldo_bytes:  bytes | None,
         archivos_mov: list[tuple[str, bytes]],
-        empresa_id:   int,
     ) -> UploadResponse:
         inicio_total = time.time()
 
@@ -97,9 +96,9 @@ class KardexService:
 
         if saldo_bytes:
             saldos_iniciales = parsear_saldos_iniciales(saldo_bytes)
-            await self._persistir_saldos_iniciales(saldos_iniciales, empresa_id)
+            await self._persistir_saldos_iniciales(saldos_iniciales)
         else:
-            saldos_iniciales = await self._cargar_saldos_desde_bd(empresa_id)
+            saldos_iniciales = await self._cargar_saldos_desde_bd()
         print(f"⏱️  [1] Saldos iniciales: {time.time() - t0:.2f}s")
 
         # ── 2. Parsear movimientos ────────────────────────────────────────────
@@ -167,7 +166,7 @@ class KardexService:
         print(f"⏱️  [7a] Crear procesamiento: {time.time() - t0:.2f}s")
 
         t0 = time.time()
-        await self._persistir_movimientos(df_all, procesamiento.id, empresa_id)
+        await self._persistir_movimientos(df_all, procesamiento.id)
         print(f"⏱️  [7b] Persistir movimientos: {time.time() - t0:.2f}s")
 
         print(f"✅ TOTAL: {time.time() - inicio_total:.2f}s para {len(df_all)} registros")
@@ -308,21 +307,18 @@ class KardexService:
         return [ProcesamientoResumen.model_validate(p) for p in procesamientos]
 
     # ── Helpers privados ──────────────────────────────────────────────────────
-    async def _cargar_saldos_desde_bd(self, empresa_id: int) -> dict:
+    async def _cargar_saldos_desde_bd(self) -> dict:
         """
-        Carga el saldo vigente por producto filtrando por empresa.
-        Trae todos los saldos y luego en Python selecciona el más reciente
-        por producto (equivalente al ORDER BY fecha DESC LIMIT 1 por grupo).
+        Carga el saldo inicial vigente de TODOS los productos en el sistema de forma global.
         """
         result = await self.db.execute(
             select(SaldoInicial, Producto)
             .join(Producto, SaldoInicial.producto_id == Producto.id)
-            .where(Producto.empresa_id == empresa_id)
             .order_by(SaldoInicial.producto_id, SaldoInicial.fecha.desc())
         )
         saldos = {}
         for saldo, producto in result.all():
-            # Solo toma el primero por codigo (el más reciente por el ORDER BY)
+            # El ORDER BY asegura quedarnos con el saldo más reciente por código de producto
             if producto.codigo not in saldos:
                 saldos[producto.codigo] = {
                     "fecha":          saldo.fecha,
@@ -335,12 +331,11 @@ class KardexService:
     async def _persistir_saldos_iniciales(
         self,
         saldos:     dict,
-        empresa_id: int,
     ) -> None:
         from datetime import date as date_type
 
         codigos       = list(saldos.keys())
-        productos_map = await self.producto_repo.get_or_create_bulk(codigos, empresa_id)
+        productos_map = await self.producto_repo.get_or_create_bulk(codigos)
 
         for codigo, lista_datos in saldos.items():
             producto = productos_map[codigo]
@@ -370,13 +365,13 @@ class KardexService:
         self,
         df:               pd.DataFrame,
         procesamiento_id: int,
-        empresa_id:       int,
-    ) -> None:
+    ) -> None: 
         codigos_unicos = df["Codigo"].astype(str).str.strip().unique().tolist()
-        productos_map  = await self.producto_repo.get_or_create_bulk(codigos_unicos, empresa_id)
+        
+        # Obtiene o crea globalmente (Nuevos van a ID 1, conocidos mantienen su ID de empresa)
+        productos_map = await self.producto_repo.get_or_create_bulk(codigos_unicos)
 
         registros = []
-
         for row in df.itertuples(index=False):
             codigo   = str(row.Codigo).strip()
             producto = productos_map[codigo]

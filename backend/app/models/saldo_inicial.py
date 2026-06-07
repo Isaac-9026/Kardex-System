@@ -15,7 +15,7 @@ class SaldoInicial(Base):
         CheckConstraint("costo_total >= 0",    name="ck_saldo_costo_total"),
     )
     id:             Mapped[int]      = mapped_column(primary_key=True, index=True)
-    producto_id:    Mapped[int]      = mapped_column(ForeignKey("productos.id"), nullable=False)
+    producto_id:    Mapped[int]      = mapped_column(ForeignKey("productos.id", ondelete="CASCADE"), nullable=False)
     fecha:          Mapped[date]     = mapped_column(Date(), nullable=False)
     cantidad:       Mapped[Decimal]  = mapped_column(Numeric(22, 10), nullable=False)
     costo_unitario: Mapped[Decimal]  = mapped_column(Numeric(22, 10), nullable=False)

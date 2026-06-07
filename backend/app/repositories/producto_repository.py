@@ -133,32 +133,30 @@ class ProductoRepository:
         )
         return result.scalar() or 0
 
-    async def get_or_create_bulk(
-        self,
-        codigos:    list[str],
-        empresa_id: int,
-    ) -> dict[str, Producto]:
-        """
-        Versión optimizada para procesar muchos códigos a la vez.
-        Ahora requiere empresa_id porque el unique es (empresa_id, codigo).
-        """
+    async def get_or_create_bulk(self, codigos: list[str]) -> dict[str, Producto]:
         if not codigos:
             return {}
 
+        from app.core.constants import EMPRESA_SIN_ASIGNAR_ID
+
+        # 1. Búsqueda global en toda la BD por código (ya no importa la empresa)
         result = await self.db.execute(
-            select(Producto).where(
-                Producto.empresa_id == empresa_id,
-                Producto.codigo.in_(codigos),
-            )
+            select(Producto).where(Producto.codigo.in_(codigos))
         )
         existentes = {p.codigo: p for p in result.scalars().all()}
 
+        # 2. Identificar cuáles no existen en absoluto
         faltantes = [c for c in codigos if c not in existentes]
 
+        # 3. Crear los nuevos directamente en "SIN ASIGNAR" (ID: 1)
         if faltantes:
-            nuevos = [Producto(codigo=c, empresa_id=empresa_id) for c in faltantes]
+            nuevos = [
+                Producto(codigo=c, empresa_id=EMPRESA_SIN_ASIGNAR_ID) 
+                for c in faltantes
+            ]
             self.db.add_all(nuevos)
-            await self.db.flush()
+            await self.db.flush() # Para obtener los IDs generados por la BD
+            
             for p in nuevos:
                 existentes[p.codigo] = p
 

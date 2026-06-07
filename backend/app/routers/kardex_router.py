@@ -18,7 +18,6 @@ router = APIRouter(prefix="/kardex", tags=["Kardex"])
 @router.post("/procesar", response_model=UploadResponse, status_code=201)
 async def procesar_kardex(
     movimientos: Annotated[List[UploadFile], File(description="Archivos de movimientos (uno o varios)")],
-    empresa_id:  int = Query(..., description="ID de la empresa a la que pertenecen los archivos"),
     saldos:      Annotated[UploadFile | None, File(description="Archivo de saldos iniciales (opcional)")] = None,
     db:          AsyncSession = Depends(get_db),
 ):
@@ -45,7 +44,6 @@ async def procesar_kardex(
     return await service.procesar_archivos(
         saldo_bytes  = saldo_bytes,
         archivos_mov = archivos_mov,
-        empresa_id   = empresa_id,
     )
 
 
