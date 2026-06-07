@@ -30,6 +30,20 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("ruc", name="uq_empresa_ruc")
     )
+    op.execute("""
+    INSERT INTO empresa (
+        id,
+        nombre,
+        ruc,
+        direccion
+    )
+    VALUES (
+        1,
+        'SIN ASIGNAR',
+        '00000000000',
+        'Empresa del sistema'
+    )
+    """)
     op.create_index("ix_empresas_id", "empresa", ["id"])
 
     # ── 2. PRODUCTOS ──────────────────────────────────────────────────────────
