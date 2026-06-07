@@ -9,6 +9,26 @@ class ProductoRepository:
 
     def __init__(self, db: AsyncSession):
         self.db = db
+        
+    #Crear un producto manualmente validando la instancia
+    async def crear(
+        self,
+        codigo: str,
+        empresa_id: int,
+        descripcion: str | None = None,
+        codigo_existencia: str | None = None,
+        unidad_medida: str | None = None,
+    ) -> Producto:
+        producto = Producto(
+            codigo=codigo,
+            empresa_id=empresa_id,
+            descripcion=descripcion,
+            codigo_existencia=codigo_existencia,
+            unidad_medida=unidad_medida,
+        )
+        self.db.add(producto)
+        await self.db.flush()
+        return producto
 
     async def get_by_id(self, producto_id: int) -> Producto | None:
         result = await self.db.execute(
@@ -90,6 +110,7 @@ class ProductoRepository:
     async def update(
         self,
         producto_id:       int,
+        empresa_id:        int | None = None,
         descripcion:       str | None = None,
         codigo_existencia: str | None = None,
         unidad_medida:     str | None = None,
@@ -97,6 +118,8 @@ class ProductoRepository:
         producto = await self.get_by_id(producto_id)
         if not producto:
             return None
+        
+        if empresa_id        is not None: producto.empresa_id        = empresa_id
         if descripcion       is not None: producto.descripcion       = descripcion
         if codigo_existencia is not None: producto.codigo_existencia = codigo_existencia
         if unidad_medida     is not None: producto.unidad_medida     = unidad_medida

@@ -3,11 +3,18 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-
+class ProductoCreate(BaseModel):
+    empresa_id: int
+    codigo: str
+    descripcion: str | None = None
+    codigo_existencia: str | None = None
+    unidad_medida: str | None = None
+    
 class ProductoUpdate(BaseModel):
-    descripcion:       Optional[str] = None
+    empresa_id: Optional[int] = None
+    descripcion: Optional[str] = None
     codigo_existencia: Optional[str] = None
-    unidad_medida:     Optional[str] = None
+    unidad_medida: Optional[str] = None
 
 
 class SaldoInicialResumen(BaseModel):
