@@ -355,44 +355,42 @@ const handleExportar = () =>
     return Array.from(set) as string[]
   }, [movimientos])
 
-  // ═══ Cargar datos de empresa para impresión SUNAT ═══
-  // Lógica: 1) busca por código filtrado  2) si no → busca "default"  3) si no → toma el primero de la lista
+// ✅ ENFOQUE UNIVERSAL: Sincroniza la metadata de impresión desde los datos reales del backend
   useEffect(() => {
-    const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-    const codigoActual = codigo || codigosVisibles[0]
-
-    const fetchEmpresa = async () => {
-      // Intento 1: por código de producto actual
-      if (codigoActual) {
-        try {
-          const res = await fetch(`${API}/api/v1/empresa/${codigoActual}`)
-          if (res.ok) {
-            const data = await res.json()
-            if (data) { setEmpresaImpresion(data); return }
-          }
-        } catch { /* continúa */ }
-      }
-      // Intento 2: registro "default"
-      try {
-        const res = await fetch(`${API}/api/v1/empresa/default`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data) { setEmpresaImpresion(data); return }
-        }
-      } catch { /* continúa */ }
-      // Intento 3: primera empresa de la lista
-      try {
-        const res = await fetch(`${API}/api/v1/empresa/`)
-        if (res.ok) {
-          const lista = await res.json()
-          if (Array.isArray(lista) && lista.length > 0) { setEmpresaImpresion(lista[0]); return }
-        }
-      } catch { /* continúa */ }
+    // Si no hay movimientos cargados, no hay nada que mapear
+    if (movimientos.length === 0) {
       setEmpresaImpresion(null)
+      return
     }
 
-    fetchEmpresa()
-  }, [codigo, codigosVisibles])
+    // Buscamos el primer movimiento válido que contenga la información de la empresa
+    // Priorizamos el código filtrado, si no, tomamos el primer registro de la tabla
+    const movimientoMeta = movimientos.find(m => m.codigo === codigo) || movimientos[0]
+
+    if (movimientoMeta?.producto?.empresa) {
+      const emp = movimientoMeta.producto.empresa
+      setEmpresaImpresion({
+        razon_social: emp.nombre,
+        ruc: emp.ruc,
+        establecimiento: emp.establecimiento || 'Almacén Principal',
+        tipo: movimientoMeta.producto.codigo_existencia || '01',
+        codigo_existencia: movimientoMeta.producto.codigo || '—',
+        unidad_medida: movimientoMeta.producto.unidad_medida || 'NIU',
+        metodo_valuacion: 'COSTO PROMEDIO (CPP)',
+      })
+    } else {
+      // Fallback si el producto aún está en 'SIN ASIGNAR'
+      setEmpresaImpresion({
+        razon_social: '⚠️ PENDIENTE DE ASIGNAR',
+        ruc: '00000000000',
+        establecimiento: 'Almacén de Tránsito',
+        tipo: movimientoMeta?.producto?.codigo_existencia || '01',
+        codigo_existencia: movimientoMeta?.codigo || '—',
+        unidad_medida: movimientoMeta?.producto?.unidad_medida || 'NIU',
+        metodo_valuacion: 'COSTO PROMEDIO (CPP)',
+      })
+    }
+  }, [codigo, movimientos])
 
   if (!id) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07101e', color: '#2a4a6a', fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>

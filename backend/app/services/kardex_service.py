@@ -221,6 +221,10 @@ class KardexService:
                 procesamiento_id, codigo_saldo, antes_de, saldo_cant, saldo_total
             )
 
+            # Inyectamos el producto al saldo inicial sintético si existe en el primer movimiento
+            if fila_saldo_inicial and movimientos:
+                fila_saldo_inicial.producto = movimientos[0].producto
+
         elif fecha_desde and codigo_saldo:
             mov_anterior = await self.movimiento_repo.get_saldo_anterior(
                 procesamiento_id = procesamiento_id,
@@ -232,6 +236,9 @@ class KardexService:
             fila_saldo_inicial = _build_fila_saldo_inicial(
                 procesamiento_id, codigo_saldo, fecha_desde, saldo_cant, saldo_total
             )
+
+            if fila_saldo_inicial and movimientos:
+                fila_saldo_inicial.producto = movimientos[0].producto
 
         if not movimientos and fila_saldo_inicial is None:
             raise KardexException("No se encontraron movimientos con los filtros aplicados.")
@@ -275,10 +282,12 @@ class KardexService:
                 and float(m.sal_costo_unit) > 0
             )
 
+        # CONSTRUCCIÓN CORREGIDA CON INYECCIÓN DE LA RELACIÓN 'PRODUCTO'
         movimientos_response = [
             MovimientoResponse(
                 **{c.key: getattr(m, c.key) for c in m.__table__.columns},
                 codigo             = m.producto.codigo if m.producto else None,
+                producto           = m.producto if m.producto else None, # 🟢 El fix del objeto anidado
                 semaforo           = calcular_semaforo(m),
                 fila               = idx + 1,
                 costo_reconstruido = es_costo_reconstruido(m),

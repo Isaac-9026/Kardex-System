@@ -1,7 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, extract, delete
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload  # CAMBIADO: Importamos joinedload en lugar de selectinload
 from app.models.movimiento import Movimiento
+from app.models.producto import Producto  # Necesario para la referencia encadenada
 from datetime import date
 from decimal import Decimal
 
@@ -18,8 +19,12 @@ class MovimientoRepository:
         await self.db.flush()
 
     async def get_by_procesamiento(self, procesamiento_id: int) -> list[Movimiento]:
+        # Añadido joinedload encadenado aquí también para búsquedas por lote completo
         result = await self.db.execute(
             select(Movimiento)
+            .options(
+                joinedload(Movimiento.producto).joinedload(Producto.empresa)
+            )
             .where(Movimiento.procesamiento_id == procesamiento_id)
             .order_by(Movimiento.fecha, Movimiento.id)
         )
@@ -30,9 +35,13 @@ class MovimientoRepository:
         codigo:        str,
         procesamiento_id: int,
     ) -> list[Movimiento]:
+        # Añadido joinedload encadenado para las consultas directas por código
         result = await self.db.execute(
             select(Movimiento)
             .join(Movimiento.producto)
+            .options(
+                joinedload(Movimiento.producto).joinedload(Producto.empresa)
+            )
             .where(
                 and_(
                     Movimiento.procesamiento_id == procesamiento_id,
@@ -53,7 +62,7 @@ class MovimientoRepository:
         fecha_desde:      date | None = None,
         fecha_hasta:      date | None = None,
     ) -> list[Movimiento]:
-        """Consulta movimientos con filtros opcionales."""
+        """Consulta movimientos con filtros opcionales cargando la metadata corporativa."""
         conditions = [Movimiento.procesamiento_id == procesamiento_id]
 
         if codigo:
@@ -69,9 +78,12 @@ class MovimientoRepository:
             if mes:
                 conditions.append(extract("month", Movimiento.fecha) == mes)
 
+        # EL FIX MAESTRO: joinedload en cascada profunda (Movimiento -> Producto -> Empresa)
         result = await self.db.execute(
             select(Movimiento)
-            .options(selectinload(Movimiento.producto))
+            .options(
+                joinedload(Movimiento.producto).joinedload(Producto.empresa)
+            )
             .where(and_(*conditions))
             .order_by(Movimiento.fecha, Movimiento.id)
         )
@@ -92,9 +104,12 @@ class MovimientoRepository:
         Devuelve el último movimiento del código ANTES de la fecha indicada.
         Se usa para construir la fila 'SALDO INICIAL' al filtrar por mes.
         """
+        # Cambiado selectinload por el joinedload anidado para la fila base temporal
         result = await self.db.execute(
             select(Movimiento)
-            .options(selectinload(Movimiento.producto))
+            .options(
+                joinedload(Movimiento.producto).joinedload(Producto.empresa)
+            )
             .join(Movimiento.producto)
             .where(
                 and_(
