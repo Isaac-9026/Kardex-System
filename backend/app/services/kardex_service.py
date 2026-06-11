@@ -90,7 +90,7 @@ class KardexService:
     ) -> UploadResponse:
         inicio_total = time.time()
 
-        # ── 1. Parsear saldos iniciales ───────────────────────────────────────
+        # ── 1. Parsear saldos iniciales (Historial completo multitemporal) ───
         t0 = time.time()
         saldos_iniciales = {}
 
@@ -221,7 +221,6 @@ class KardexService:
                 procesamiento_id, codigo_saldo, antes_de, saldo_cant, saldo_total
             )
 
-            # Inyectamos el producto al saldo inicial sintético si existe en el primer movimiento
             if fila_saldo_inicial and movimientos:
                 fila_saldo_inicial.producto = movimientos[0].producto
 
@@ -282,12 +281,11 @@ class KardexService:
                 and float(m.sal_costo_unit) > 0
             )
 
-        # CONSTRUCCIÓN CORREGIDA CON INYECCIÓN DE LA RELACIÓN 'PRODUCTO'
         movimientos_response = [
             MovimientoResponse(
                 **{c.key: getattr(m, c.key) for c in m.__table__.columns},
                 codigo             = m.producto.codigo if m.producto else None,
-                producto           = m.producto if m.producto else None, # 🟢 El fix del objeto anidado
+                producto           = m.producto if m.producto else None,
                 semaforo           = calcular_semaforo(m),
                 fila               = idx + 1,
                 costo_reconstruido = es_costo_reconstruido(m),
@@ -315,26 +313,35 @@ class KardexService:
         procesamientos = await self.procesamiento_repo.get_historial(limit=limit, offset=offset)
         return [ProcesamientoResumen.model_validate(p) for p in procesamientos]
 
+    # ── Eliminar individual (NUEVO: Fix AttributeError) ───────────────────────
+    async def eliminar_saldo(self, saldo_id: int) -> bool:
+        """Elimina un único saldo inicial delegando en el repositorio."""
+        await self.saldo_repo.delete(saldo_id)
+        return True
+
     # ── Helpers privados ──────────────────────────────────────────────────────
     async def _cargar_saldos_desde_bd(self) -> dict:
         """
-        Carga el saldo inicial vigente de TODOS los productos en el sistema de forma global.
+        Carga TODOS los saldos iniciales históricos agrupados en listas cronológicas.
+        Permite a Pandas mapear la línea de tiempo correcta de cada Excel.
         """
         result = await self.db.execute(
             select(SaldoInicial, Producto)
             .join(Producto, SaldoInicial.producto_id == Producto.id)
-            .order_by(SaldoInicial.producto_id, SaldoInicial.fecha.desc())
+            .order_by(Producto.codigo, SaldoInicial.fecha.asc())
         )
         saldos = {}
         for saldo, producto in result.all():
-            # El ORDER BY asegura quedarnos con el saldo más reciente por código de producto
-            if producto.codigo not in saldos:
-                saldos[producto.codigo] = {
-                    "fecha":          saldo.fecha,
-                    "cantidad":       saldo.cantidad,
-                    "costo_unitario": saldo.costo_unitario,
-                    "costo_total":    saldo.costo_total,
-                }
+            codigo_limpio = producto.codigo.strip()
+            if codigo_limpio not in saldos:
+                saldos[codigo_limpio] = []
+            
+            saldos[codigo_limpio].append({
+                "fecha":          saldo.fecha,
+                "cantidad":       saldo.cantidad,
+                "costo_unitario": saldo.costo_unitario,
+                "costo_total":    saldo.costo_total,
+                })
         return saldos
 
     async def _persistir_saldos_iniciales(
@@ -352,12 +359,10 @@ class KardexService:
             for datos in lista_datos:
                 fecha = datos.get("fecha") or date_type.today()
                 
-                # Obtenemos los valores en crudo
                 cantidad_raw = Decimal(str(datos["cantidad"]))
                 costo_uni_raw = Decimal(str(datos["costo_unitario"]))
                 costo_tot_raw = Decimal(str(datos["costo_total"]))
 
-                # Saneamiento: Si el valor es negativo por un error de precisión, lo forzamos a 0.0
                 cantidad_limpia = max(Decimal("0.0"), cantidad_raw)
                 costo_uni_limpio = max(Decimal("0.0"), costo_uni_raw)
                 costo_tot_limpio = max(Decimal("0.0"), costo_tot_raw)
@@ -377,7 +382,6 @@ class KardexService:
     ) -> None: 
         codigos_unicos = df["Codigo"].astype(str).str.strip().unique().tolist()
         
-        # Obtiene o crea globalmente (Nuevos van a ID 1, conocidos mantienen su ID de empresa)
         productos_map = await self.producto_repo.get_or_create_bulk(codigos_unicos)
 
         registros = []

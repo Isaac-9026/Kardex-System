@@ -10,7 +10,7 @@ class ProductoRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
         
-    #Crear un producto manualmente validando la instancia
+    # Crear un producto manualmente validando la instancia
     async def crear(
         self,
         codigo: str,
@@ -39,6 +39,17 @@ class ProductoRepository:
         )
         return result.scalar_one_or_none()
 
+    # 🧠 NUEVO: Buscador Global Único por Código (Indispensable para el Catálogo Universal)
+    async def get_by_codigo(self, codigo: str) -> Producto | None:
+        """Busca un producto en todo el sistema sin importar la empresa asignada."""
+        result = await self.db.execute(
+            select(Producto)
+            .options(selectinload(Producto.empresa),
+                     selectinload(Producto.saldos_iniciales))
+            .where(Producto.codigo == codigo.strip())
+        )
+        return result.scalars().first()
+
     async def get_by_codigo_y_empresa(
         self,
         codigo:     str,
@@ -55,16 +66,24 @@ class ProductoRepository:
         )
         return result.scalar_one_or_none()
 
+    # 🧠 REFACTORIZADO: get_or_create ahora es GLOBAL
     async def get_or_create(
         self,
         codigo:      str,
         empresa_id:  int,
         descripcion: str | None = None,
     ) -> Producto:
-        producto = await self.get_by_codigo_y_empresa(codigo, empresa_id)
+        """
+        Busca un producto a nivel global. Si ya existe, lo retorna (evita duplicados).
+        Si no existe, lo crea en la empresa solicitada (o SIN ASIGNAR).
+        """
+        # 1. Buscar si el código ya existe en ALGUN rincón del sistema
+        producto = await self.get_by_codigo(codigo)
+        
+        # 2. Si no existe en absoluto, recién ahí lo creamos de forma segura
         if not producto:
             producto = Producto(
-                codigo      = codigo,
+                codigo      = codigo.strip(),
                 empresa_id  = empresa_id,
                 descripcion = descripcion,
             )
