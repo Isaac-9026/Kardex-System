@@ -35,32 +35,16 @@ class SaldoService:
 
     # ── Crear ─────────────────────────────────────────────────────────────────
     async def crear(self, data: SaldoInicialCreate) -> SaldoInicialConAdvertencia:
-        # 🧠 FIX MAESTRO: Buscamos primero si el código ya existe a nivel GLOBAL en todo el sistema.
-        # Usamos 'get_by_codigo' o similar de tu repositorio que busque solo por el String 'codigo'.
-        # Si no lo tienes, usamos get_or_create pero pasándole por defecto la empresa_id de control (1 para SIN ASIGNAR)
-        # para que siempre busque en el mismo sitio, o idealmente su buscador global.
-        
-        # Intentemos recuperar el producto existente únicamente por su código único
-        producto_existente = await self.producto_repo.get_by_codigo(data.codigo)
-        
-        if producto_existente:
-            # 🟢 Si el producto ya existe en el catálogo, USAMOS ESE MISMO, no creamos nada.
-            producto = producto_existente
-        else:
-            # 🟡 Si el producto es completamente nuevo en el universo del sistema, lo hacemos nacer
-            # Priorizamos la empresa que manda el formulario, o si viene vacía, lo mandamos a 'SIN ASIGNAR' (ID: 1)
-            empresa_destino = data.empresa_id if data.empresa_id else 1
-            producto = await self.producto_repo.get_or_create(
-                codigo      = data.codigo,
-                empresa_id  = empresa_destino,
-                descripcion = data.descripcion,
-            )
+        producto = await self.producto_repo.get_or_create(
+            codigo     = data.codigo,
+            empresa_id = data.empresa_id,
+            descripcion = data.descripcion,
+        )
 
         costo_total = data.costo_total or Decimal(str(
             float(data.cantidad) * float(data.costo_unitario)
         ))
 
-        # El upsert creará el saldo inicial amarrado al ID único del producto original de forma correcta
         saldo, total_proc = await self.saldo_repo.upsert(
             producto_id    = producto.id,
             fecha          = data.fecha,
@@ -155,7 +139,7 @@ class SaldoService:
             "mensaje": f"Saldo inicial #{saldo_id} eliminado correctamente.",
             "advertencia": advertencia
         }
-    
+
     # ── Helpers privados ──────────────────────────────────────────────────────
     def _to_response(self, saldo) -> SaldoInicialResponse:
         # Definimos el formato deseado: '0.00' para 2 decimales, o '0.0000' para 4.
