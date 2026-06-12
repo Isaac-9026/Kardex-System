@@ -180,6 +180,17 @@ const IconSaldos = () => (
     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
   </svg>
 );
+
+const IconEmpresa = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="2" width="16" height="20" rx="1"/>
+    <line x1="9" y1="6" x2="9.01" y2="6"/><line x1="15" y1="6" x2="15.01" y2="6"/>
+    <line x1="9" y1="10" x2="9.01" y2="10"/><line x1="15" y1="10" x2="15.01" y2="10"/>
+    <line x1="9" y1="14" x2="9.01" y2="14"/><line x1="15" y1="14" x2="15.01" y2="14"/>
+    <path d="M9 22v-4h6v4"/>
+  </svg>
+)
+
 const IconSpinner = () => (
   <svg
     width="13"
@@ -384,9 +395,7 @@ const Sidebar = ({ id, onNavigate, currentPath }: SidebarProps) => {
       >
         Análisis
       </div>
-      {navItem("Movimientos", <IconList />, `/kardex/${id}`, true)}
-      {navItem("Verificación", <IconShield />, `/kardex/${id}`, false)}
-      {navItem("Exportar", <IconDownload />, `/kardex/${id}`, false)}
+      {navItem('Movimientos', <IconList />, `/kardex/${id}`, true)}
 
       <div
         style={{
@@ -408,13 +417,8 @@ const Sidebar = ({ id, onNavigate, currentPath }: SidebarProps) => {
       >
         Sistema
       </div>
-      {navItem("Saldos", <IconSaldos />, "/saldos", currentPath === "/saldos")}
-      {navItem(
-        "Empresas",
-        <IconProducts />,
-        "/empresas",
-        currentPath === "/empresas",
-      )}
+      {navItem('Productos', <IconProducts />, '/productos', currentPath === '/productos')}
+      {navItem('Empresas',  <IconEmpresa />,  '/empresas',  currentPath === '/empresas')}
     </aside>
   );
 };

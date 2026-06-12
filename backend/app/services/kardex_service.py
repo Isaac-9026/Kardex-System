@@ -421,4 +421,4 @@ class KardexService:
                 "error_b":        bool(row.Error_B),
             })
 
-        await self.movimiento_repo.crear_bulk(registros)    
+        await self.movimiento_repo.crear_bulk(registros)

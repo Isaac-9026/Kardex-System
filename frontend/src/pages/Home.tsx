@@ -1,10 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import Sidebar from '../components/Sidebar'
 import FileUploader from '../components/FileUploader'
 import ModalSaldoInicial from '../components/ModalSaldoInicial'
 import { useKardex } from '../hooks/useKardex'
+
+const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+
+interface Empresa {
+  id:     number
+  nombre: string
+}
 
 const IconUpload = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -28,6 +35,12 @@ const IconPlus = () => (
     <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
   </svg>
 )
+const IconBuilding = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+    <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+  </svg>
+)
 
 export default function Home() {
   const navigate = useNavigate()
@@ -35,17 +48,34 @@ export default function Home() {
 
   const [archivosMovimientos, setArchivosMovimientos] = useState<File[]>([])
   const [archivoSaldos,       setArchivoSaldos]       = useState<File[]>([])
-  const [modalSaldoOpen,      setModalSaldoOpen]      = useState(false)
+  const [modalSaldoOpen,      setModalSaldoOpen]       = useState(false)
+  const [empresas,            setEmpresas]             = useState<Empresa[]>([])
+  const [empresaId,           setEmpresaId]            = useState<number | null>(null)
+
+  useEffect(() => {
+    const fetchEmpresas = async () => {
+      try {
+        const res = await fetch(`${API}/api/v1/empresa/`)
+        if (res.ok) {
+          const data: Empresa[] = await res.json()
+          // Excluir empresa id=1 (SIN ASIGNAR)
+          setEmpresas(data.filter(e => e.id !== 1))
+        }
+      } catch (e) {
+        console.error('Error al cargar empresas', e)
+      }
+    }
+    fetchEmpresas()
+  }, [])
 
   const handleProcesar = async () => {
     if (archivosMovimientos.length === 0) return
-
-    const toastId = toast.loading('Procesando Catálogo Universal…')
+    const toastId = toast.loading('Procesando Kardex…')
     try {
-      // 🧠 Enfoque Universal: Enviamos solo los binarios, el backend se encarga de la distribución
       const resultado = await subirArchivos(
         archivosMovimientos,
-        archivoSaldos[0] ?? null
+        archivoSaldos[0] ?? null,
+        empresaId ?? undefined,
       )
       if (resultado) {
         toast.success(`Kardex procesado: ${resultado.total_registros ?? 'OK'} registros`, { id: toastId })
@@ -58,7 +88,6 @@ export default function Home() {
     }
   }
 
-  // ✅ CORREGIDO: "listo" ahora solo depende de que se haya cargado el Excel de movimientos
   const listo = archivosMovimientos.length > 0
 
   const card = (topColor: string): React.CSSProperties => ({
@@ -69,6 +98,8 @@ export default function Home() {
     padding: '32px',
   })
 
+  const empresaSeleccionada = empresas.find(e => e.id === empresaId)
+
   return (
     <div style={{ height: '100vh', display: 'flex', background: '#07101e', fontFamily: "'Inter', sans-serif", color: '#c8ddef' }}>
 
@@ -76,7 +107,7 @@ export default function Home() {
 
       <ModalSaldoInicial
         open={modalSaldoOpen}
-        empresaId={1} // Fallback seguro a SIN ASIGNAR para inserciones directas
+        empresaId={1}
         onClose={() => setModalSaldoOpen(false)}
         saldoEditar={null}
         onGuardado={() => toast.success('Saldo inicial guardado correctamente')}
@@ -86,11 +117,59 @@ export default function Home() {
         <header style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: '1px solid rgba(56,139,221,0.1)', background: '#080e1c', flexShrink: 0 }}>
           <div>
             <h1 style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 17, fontWeight: 700, color: '#e2e8f0', margin: 0, lineHeight: 1 }}>
-              Procesar Kardex Universal
+              Procesar Kardex
             </h1>
-            <p style={{ fontSize: 11, color: '#1e3a5a', marginTop: 2, margin: 0 }}>
-              Importación automática — los productos nuevos nacerán en el limbo contable 'SIN ASIGNAR'
+            <p style={{ fontSize: 11, color: '#1e3a5a', marginTop: 2 }}>
+              Importa tus archivos Excel — los productos nuevos se asignan automáticamente
             </p>
+          </div>
+
+          {/* ── Selector de empresa ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#4a7a9a' }}>
+              <IconBuilding />
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', fontFamily: "'IBM Plex Mono', monospace", color: '#1e3a5a' }}>
+                Empresa
+              </span>
+            </div>
+            <select
+              value={empresaId ?? ''}
+              onChange={e => setEmpresaId(e.target.value ? Number(e.target.value) : null)}
+              style={{
+                background: '#07101e',
+                border: `1px solid ${empresaId ? 'rgba(59,130,246,0.4)' : 'rgba(56,139,221,0.2)'}`,
+                borderRadius: 7,
+                padding: '5px 10px',
+                fontSize: 12,
+                color: empresaId ? '#60a5fa' : '#4a7a9a',
+                fontFamily: "'IBM Plex Mono', monospace",
+                outline: 'none',
+                cursor: 'pointer',
+                minWidth: 180,
+                fontWeight: empresaId ? 600 : 400,
+              }}
+            >
+              <option value="">⚠️ Sin asignar (default)</option>
+              {empresas.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  🏢 {emp.nombre}
+                </option>
+              ))}
+            </select>
+
+            {empresaId && (
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '3px 8px', borderRadius: 20,
+                background: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.25)',
+                fontSize: 10, color: '#60a5fa',
+                fontFamily: "'IBM Plex Mono', monospace",
+              }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+                {empresaSeleccionada?.nombre}
+              </div>
+            )}
           </div>
         </header>
 
@@ -161,7 +240,12 @@ export default function Home() {
             </button>
             {!listo && !uploading && (
               <span style={{ fontSize: 12, color: '#1e3a5a' }}>
-                Agrega al menos un archivo de movimientos para activar el motor
+                Agrega al menos un archivo de movimientos
+              </span>
+            )}
+            {listo && !uploading && empresaId && (
+              <span style={{ fontSize: 12, color: '#60a5fa', fontFamily: "'IBM Plex Mono', monospace" }}>
+                → Los productos nuevos se asignarán a <strong>{empresaSeleccionada?.nombre}</strong>
               </span>
             )}
           </div>
