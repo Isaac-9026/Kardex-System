@@ -9,7 +9,7 @@ import { BaseLayout } from '@/components/layouts/base-layout'
 // Tus páginas
 import Login from '@/pages/Login'
 import Home from '@/pages/Home'
-import Kardex from '@/pages/Kardex'
+import Kardex from '@/pages/movimientos/index'
 import Historial from '@/pages/historial/index'
 import SaldosIniciales from '@/pages/saldos-iniciales/index'
 import Empresas from '@/pages/empresas/index' 
