@@ -1,4 +1,26 @@
+"use client"
+
 import { useState, useEffect, useRef } from 'react'
+import { AlertCircle, CheckCircle2, Loader2, Package } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface ProductoPayload {
   empresa_id: number
@@ -31,7 +53,6 @@ interface Props {
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
-// Desempaquetador de errores nativo de FastAPI con tratamiento de arrays
 function parseFastApiError(data: any, status: number): string {
   if (!data?.detail) return `Error ${status}`
   if (typeof data.detail === 'string') return data.detail
@@ -57,7 +78,7 @@ async function crearProducto(payload: ProductoPayload) {
 
 async function editarProducto(id: number, payload: ProductoPayload) {
   const res = await fetch(`${API}/api/v1/productos/${id}`, {
-    method: 'PATCH', // Usamos PATCH según las especificaciones de tu router
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
@@ -66,55 +87,6 @@ async function editarProducto(id: number, payload: ProductoPayload) {
   return data
 }
 
-/* ── Icons ───────────────────────────────────────────────────────────────── */
-const IconX = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-)
-const IconCheck = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-)
-const IconSpinner = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ animation: 'mspin 1s linear infinite' }}>
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2" />
-    <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    <style>{`@keyframes mspin{to{transform:rotate(360deg)}}`}</style>
-  </svg>
-)
-const IconBox = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-  </svg>
-)
-
-/* ── Helpers visuales herederos ─────────────────────────────────────────── */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div style={{
-        fontSize: 10, fontWeight: 700, letterSpacing: '.1em',
-        textTransform: 'uppercase', color: '#1e3a5a',
-        marginBottom: 5, fontFamily: "'IBM Plex Mono', monospace",
-      }}>
-        {label}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function Msg({ children, color }: { children: React.ReactNode; color: string }) {
-  return (
-    <div style={{ borderRadius: 7, padding: '8px 12px', fontSize: 12, color, display: 'flex', gap: 6, alignItems: 'center' }}>
-      {children}
-    </div>
-  )
-}
-
-/* ── Componente Principal ─────────────────────────────────────────────────── */
 export default function ModalProducto({ open, onClose, onGuardado, productoEditar }: Props) {
   const modoEditar = !!productoEditar
 
@@ -122,8 +94,8 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
   const [empresaIdSelect, setEmpresaIdSelect] = useState<string>('')
   const [codigo, setCodigo] = useState('')
   const [descripcion, setDescripcion] = useState('')
-  const [codExistencia, setCodExistencia] = useState('01') // Mercadería por defecto
-  const [unidadMedida, setUnidadMedida] = useState('NIU')   // Unidades por defecto
+  const [codExistencia, setCodExistencia] = useState('01')
+  const [unidadMedida, setUnidadMedida] = useState('NIU')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -131,14 +103,12 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
 
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Cargar catálogo de empresas para asociar el producto
   const cargarEmpresas = async () => {
     try {
       const res = await fetch(`${API}/api/v1/empresa/`)
       if (res.ok) {
         const list: Empresa[] = await res.json()
         setEmpresas(list)
-        // Por defecto seleccionamos la primera o la empresa semilla (ID: 1)
         if (list.length > 0 && !productoEditar) {
           setEmpresaIdSelect(String(list[0].id))
         }
@@ -152,7 +122,6 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
     if (open) cargarEmpresas()
   }, [open])
 
-  // Cargar estados en base a la acción abierta
   useEffect(() => {
     if (!open) return
 
@@ -172,10 +141,9 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
 
     setError(null)
     setSuccess(false)
-    setTimeout(() => inputRef.current?.focus(), 80)
+    setTimeout(() => inputRef.current?.focus(), 120)
   }, [open, productoEditar])
 
-  // Cierre con escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', handler)
@@ -184,7 +152,8 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
 
   const valido = codigo.trim() && empresaIdSelect !== ''
 
-  const handleGuardar = async () => {
+  const handleGuardar = async (e: React.FormEvent) => {
+    e.preventDefault()
     if (!valido || loading) return
 
     setLoading(true)
@@ -215,165 +184,130 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
     }
   }
 
-  if (!open) return null
-
   return (
-    <div
-      onClick={e => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(4,10,24,0.82)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)',
-      }}
-    >
-      <style>{`
-        .mprod-input {
-          width: 100%;
-          background: rgba(13,21,37,0.9);
-          border: 1px solid rgba(56,139,221,0.18);
-          border-radius: 7px;
-          padding: 8px 11px;
-          font-size: 12px;
-          font-family: 'IBM Plex Mono', monospace;
-          color: #c8ddef;
-          outline: none;
-          transition: border-color .15s;
-          box-sizing: border-box;
-        }
-        .mprod-input:focus { border-color: rgba(59,130,246,0.55); }
-        .mprod-input:disabled { opacity: 0.5; cursor: not-allowed; }
-      `}</style>
-
-      <div style={{
-        width: 420, background: '#0d1525',
-        border: '1px solid rgba(56,139,221,0.18)',
-        borderTop: `2px solid ${modoEditar ? '#f59e0b' : '#3b82f6'}`,
-        borderRadius: 12, padding: '20px 22px',
-        display: 'flex', flexDirection: 'column', gap: 16,
-        fontFamily: "'Inter', sans-serif", color: '#c8ddef',
-      }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: modoEditar ? 'rgba(245,158,11,0.12)' : 'rgba(59,130,246,0.12)',
-              border: `1px solid ${modoEditar ? 'rgba(245,158,11,0.2)' : 'rgba(59,130,246,0.2)'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: modoEditar ? '#f59e0b' : '#60a5fa',
-            }}>
-              <IconBox />
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
+      <DialogContent className="sm:max-w-[440px] text-left border-t-2 data-[edit=true]:border-t-amber-500 data-[edit=false]:border-t-blue-500" data-edit={modoEditar}>
+        
+        {/* Cabecera Premium del Catálogo */}
+        <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div className="flex gap-3">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary data-[edit=true]:bg-amber-500/10 data-[edit=true]:border-amber-500/20 data-[edit=true]:text-amber-500" data-edit={modoEditar}>
+              <Package className="size-4 text-current" />
             </div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0' }}>
+            <div className="flex flex-col gap-0.5">
+              <DialogTitle className="text-base font-bold text-foreground">
                 {modoEditar ? 'Reasignar / Editar Producto' : 'Registrar Nuevo Producto'}
-              </div>
-              <div style={{ fontSize: 11, color: '#1e3a5a' }}>
+              </DialogTitle>
+              <span className="text-xs text-muted-foreground font-medium">
                 {modoEditar ? `ID Correlativo: #${productoEditar?.id}` : 'Inserción manual en el maestro corporativo'}
-              </div>
+              </span>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#2a5a8a', cursor: 'pointer', padding: 2 }}>
-            <IconX />
-          </button>
-        </div>
+        </DialogHeader>
 
-        {/* Divider */}
-        <div style={{ height: 1, background: 'rgba(56,139,221,0.1)' }} />
-
-        {/* Formulario */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Cuerpo del Formulario Global */}
+        <form onSubmit={handleGuardar} className="space-y-4 pt-1">
           
-          <Field label="Empresa de Asignación *">
-            <select
-              className="mprod-input"
-              value={empresaIdSelect}
-              onChange={e => setEmpresaIdSelect(e.target.value)}
-            >
-              {empresas.map(emp => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.id === 1 ? '⚠️ ' : ''}{emp.nombre}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {/* Select de Empresas Asignadas */}
+          <div className="space-y-1.5">
+            <Label htmlFor="p-empresa" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Empresa de Asignación *</Label>
+            <Select value={empresaIdSelect} onValueChange={setEmpresaIdSelect}>
+              <SelectTrigger id="p-empresa" className="h-9 text-xs font-mono bg-card w-full">
+                <SelectValue placeholder="Seleccione empresa corporativa" />
+              </SelectTrigger>
+              <SelectContent>
+                {empresas.map((emp) => (
+                  <SelectItem key={emp.id} value={String(emp.id)} className="text-xs font-mono">
+                    {emp.id === 1 ? "⚠️ " : ""}{emp.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Field label="Código de Existencia *">
-            <input
+          {/* Input Código de Existencia */}
+          <div className="space-y-1.5">
+            <Label htmlFor="p-codigo" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Código de Existencia *</Label>
+            <Input
+              id="p-codigo"
               ref={inputRef}
-              className="mprod-input"
               value={codigo}
               onChange={e => setCodigo(e.target.value)}
-              disabled={modoEditar} // Protegemos el código en el catálogo si ya está guardado
+              disabled={modoEditar}
               placeholder="Ej: 011004"
+              className="font-mono text-xs h-9 bg-card"
             />
-          </Field>
+          </div>
 
-          <Field label="Descripción de Producto">
-            <input
-              className="mprod-input"
+          {/* Input Descripción */}
+          <div className="space-y-1.5">
+            <Label htmlFor="p-desc" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Descripción de Producto</Label>
+            <Input
+              id="p-desc"
               value={descripcion}
               onChange={e => setDescripcion(e.target.value)}
               placeholder="Ej: FURALTADONA HCL-01"
+              className="text-xs h-9 bg-card"
             />
-          </Field>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="Unidad Medida">
-              <input
-                className="mprod-input"
+          {/* Fila Unidad Medida y Tipo Existencia */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="p-unidad" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Unidad Medida</Label>
+              <Input
+                id="p-unidad"
                 value={unidadMedida}
                 onChange={e => setUnidadMedida(e.target.value)}
                 placeholder="Ej: NIU o KGM"
+                className="font-mono text-xs h-9 bg-card"
               />
-            </Field>
-            <Field label="Tipo Existencia Sunat">
-              <input
-                className="mprod-input"
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-tipo" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Tipo Existencia Sunat</Label>
+              <Input
+                id="p-tipo"
                 value={codExistencia}
                 onChange={e => setCodExistencia(e.target.value)}
                 placeholder="Ej: 01"
+                className="font-mono text-xs h-9 bg-card"
               />
-            </Field>
+            </div>
           </div>
-        </div>
 
-        {/* Notificadores */}
-        {error && <Msg color="#fca5a5">✕ {error}</Msg>}
-        {success && <Msg color="#4ade80"><IconCheck /> {modoEditar ? 'Registro reclasificado con éxito' : 'Producto insertado en catálogo'}</Msg>}
+          {/* Bloque de Notificaciones de Feedback */}
+          {error && (
+            <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-mono px-4 py-2.5 rounded-xl animate-in fade-in duration-150">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        {/* Botones de acción */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '7px 16px', borderRadius: 7, cursor: 'pointer',
-              background: 'rgba(56,139,221,0.06)', border: '1px solid rgba(56,139,221,0.14)',
-              color: '#2a5a8a', fontSize: 12, fontFamily: 'inherit',
-            }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleGuardar}
-            disabled={!valido || loading}
-            style={{
-              padding: '7px 18px', borderRadius: 7, cursor: !valido || loading ? 'not-allowed' : 'pointer',
-              background: !valido || loading
-                ? 'rgba(29,78,216,0.3)'
-                : modoEditar
-                  ? 'linear-gradient(135deg,#d97706,#b45309)'
-                  : 'linear-gradient(135deg,#1d4ed8,#1e3a8a)',
-              border: 'none', color: '#e2e8f0', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            {loading ? <><IconSpinner /> Guardando...</> : modoEditar ? 'Reclasificar ítem' : 'Guardar Producto'}
-          </button>
-        </div>
+          {success && (
+            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-mono px-4 py-2.5 rounded-xl animate-in fade-in duration-150">
+              <CheckCircle2 className="size-4 shrink-0" />
+              <span>{modoEditar ? 'Registro reclasificado con éxito' : 'Producto insertado en catálogo'}</span>
+            </div>
+          )}
 
-      </div>
-    </div>
+          {/* Footer de Acciones */}
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
+            <Button type="button" variant="outline" onClick={onClose} className="cursor-pointer rounded-xl h-9 text-xs">
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={!valido || loading} className="cursor-pointer rounded-xl h-9 text-xs gap-2 font-semibold">
+              {loading ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                modoEditar ? 'Reclasificar ítem' : 'Guardar Producto'
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
