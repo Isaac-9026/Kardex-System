@@ -355,6 +355,21 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
         <style>{`
         @media screen { .kp-section { display:none !important; } }
         @media print {
+
+            /* 🔴 OCULTAR HEADER, FOOTER Y ELEMENTOS DE NAVEGACIÓN GLOBAL */
+    header, footer, .site-header, .site-footer, .button, [data-sidebar], .nav-container {
+      display: none !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* Forzar que el contenedor principal ocupe el 100% sin márgenes web */
+    main, .main-content {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
           .ks-section { display:none !important; }
           .kp-section { display:block !important; }
           @page { size: A4 landscape; margin: 10mm 8mm; }

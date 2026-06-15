@@ -11,12 +11,12 @@ export function SiteFooter() {
             <Heart className="h-4 w-4 fill-red-500 text-red-500" />
             <span>by</span>
             <Link
-              to="https://shadcnstore.com"
+              to="https://zzzzzz"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-foreground hover:text-primary transition-colors"
             >
-              ABCDFGH
+              RANDM
             </Link>
           </div>
           <p className="text-xs text-muted-foreground">
