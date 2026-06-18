@@ -7,7 +7,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { BaseLayout } from '@/components/layouts/base-layout'
 
 // Tus páginas
-import Login from '@/pages/Login'
+import Login from '@/pages/login/index'
 import Home from '@/pages/Home'
 import Kardex from '@/pages/movimientos/index'
 import Historial from '@/pages/historial/index'
