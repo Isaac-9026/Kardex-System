@@ -13,11 +13,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface SaldoPayload {
   empresa_id:     number
@@ -105,6 +105,9 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
   const [success,     setSuccess]     = useState(false)
   const [advertencia, setAdvertencia] = useState<string | null>(null)
 
+  //Estado local controlado para cerrar el sub-modal del calendario al elegir fecha
+  const [subModalOpen, setSubModalOpen] = useState(false)
+
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -131,6 +134,7 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
     setError(null)
     setSuccess(false)
     setAdvertencia(null)
+    setSubModalOpen(false)
     setTimeout(() => inputRef.current?.focus(), 120)
   }, [open, saldoEditar])
 
@@ -252,6 +256,7 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
             />
           </div>
 
+          {/*COMPONENTE FECHA: CON SUB-DIALOG ANIDADO QUE ELIMINA EL FOCUS BUG */}
           <div className="space-y-1.5">
             <Label htmlFor="g-fecha" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Fecha</Label>
             <div className="flex items-center gap-1 bg-card border border-input rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
@@ -262,25 +267,31 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
                 onChange={e => setFecha(e.target.value)}
                 className="w-full h-9 text-xs font-mono bg-transparent border-none px-3 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden"
               />
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
+              <Dialog open={subModalOpen} onOpenChange={setSubModalOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
                     <CalendarIcon className="size-3.5" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={parseStringToDate(fecha)}
-                    onSelect={(date) => {
-                      if (date) setFecha(format(date, "yyyy-MM-dd"))
-                    }}
-                    captionLayout="dropdown"
-                    locale={es}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                </DialogTrigger>
+                <DialogContent className="w-auto p-4 bg-popover rounded-xl border shadow-2xl flex items-center justify-center z-[70]">
+                  <div className="flex flex-col gap-2">
+                    <DialogTitle className="text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground/60">Asignar Fecha de Apertura</DialogTitle>
+                    <Calendar
+                      mode="single"
+                      selected={parseStringToDate(fecha)}
+                      onSelect={(date) => {
+                        if (date) {
+                          setFecha(format(date, "yyyy-MM-dd"));
+                          setSubModalOpen(false); //Cierra limpiamente el selector al dar clic
+                        }
+                      }}
+                      captionLayout="dropdown"
+                      locale={es}
+                      initialFocus
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
