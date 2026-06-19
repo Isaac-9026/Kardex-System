@@ -2,13 +2,17 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { AlertCircle, Filter, ShieldCheck, Printer, Download, RefreshCw } from "lucide-react"
+import { AlertCircle, Filter, ShieldCheck, Printer, Download, RefreshCw, Calendar as CalendarIcon } from "lucide-react"
+import { format, parseISO, isValid } from "date-fns"
+import { es } from "date-fns/locale"
 import { useKardex } from '@/hooks/useKardex'
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/Badge"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import KardexTable, { type KardexTableHandle } from './components/kardex-table'
 
 import { cn } from "@/lib/utils"
@@ -133,6 +137,13 @@ export default function Kardex() {
     return Array.from(set) as string[]
   }, [movimientos])
 
+  // Helper para convertir de forma segura los strings ISO 'YYYY-MM-DD' a objetos Date
+  const parseStringToDate = (dateStr?: string) => {
+    if (!dateStr) return undefined
+    const parsed = parseISO(dateStr)
+    return isValid(parsed) ? parsed : undefined
+  }
+
   if (!id) return (
     <div className="min-h-screen flex items-center justify-center font-mono text-sm text-destructive bg-background">
       ⚠️ ID de procesamiento inválido.
@@ -255,15 +266,108 @@ export default function Kardex() {
                 </div>
               )}
 
+              {/*FECHA EXACTA*/}
               {draftFiltroFecha.modo === 'exacta' && (
-                <input type="date" value={draftFiltroFecha.fecha_exacta ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_exacta: e.target.value || undefined })} className="h-8 text-xs font-mono bg-card border border-border rounded-lg px-2 text-foreground" />
+                <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
+                  <input 
+                    type="date" 
+                    value={draftFiltroFecha.fecha_exacta ?? ''} 
+                    onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_exacta: e.target.value || undefined })} 
+                    className="h-8 text-xs font-mono bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
+                        <CalendarIcon className="size-3.5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={parseStringToDate(draftFiltroFecha.fecha_exacta)}
+                        onSelect={(date) => 
+                          setDraftFiltroFecha({ 
+                            ...draftFiltroFecha, 
+                            fecha_exacta: date ? format(date, "yyyy-MM-dd") : undefined 
+                          })
+                        }
+                        captionLayout="dropdown"
+                        locale={es}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               )}
 
+              {/*RANGO */}
               {draftFiltroFecha.modo === 'rango' && (
-                <div className="flex items-center gap-1">
-                  <input type="date" value={draftFiltroFecha.fecha_desde ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_desde: e.target.value || undefined })} className="h-8 text-xs font-mono bg-card border border-border rounded-lg px-2 text-foreground" />
+                <div className="flex items-center gap-1.5">
+                  {/* Desde */}
+                  <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
+                    <input 
+                      type="date" 
+                      value={draftFiltroFecha.fecha_desde ?? ''} 
+                      onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_desde: e.target.value || undefined })} 
+                      className="h-8 text-xs font-mono bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
+                          <CalendarIcon className="size-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={parseStringToDate(draftFiltroFecha.fecha_desde)}
+                          onSelect={(date) => 
+                            setDraftFiltroFecha({ 
+                              ...draftFiltroFecha, 
+                              fecha_desde: date ? format(date, "yyyy-MM-dd") : undefined 
+                            })
+                          }
+                          captionLayout="dropdown"
+                          locale={es}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
                   <span className="text-muted-foreground/40">–</span>
-                  <input type="date" value={draftFiltroFecha.fecha_hasta ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_hasta: e.target.value || undefined })} className="h-8 text-xs font-mono bg-card border border-border rounded-lg px-2 text-foreground" />
+
+                  {/* Hasta */}
+                  <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
+                    <input 
+                      type="date" 
+                      value={draftFiltroFecha.fecha_hasta ?? ''} 
+                      onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_hasta: e.target.value || undefined })} 
+                      className="h-8 text-xs font-mono bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
+                          <CalendarIcon className="size-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={parseStringToDate(draftFiltroFecha.fecha_hasta)}
+                          onSelect={(date) => 
+                            setDraftFiltroFecha({ 
+                              ...draftFiltroFecha, 
+                              fecha_hasta: date ? format(date, "yyyy-MM-dd") : undefined 
+                            })
+                          }
+                          captionLayout="dropdown"
+                          locale={es}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
               )}
             </div>
@@ -288,7 +392,7 @@ export default function Kardex() {
         <div className="w-full rounded-xl border border-border/50 bg-card/10 overflow-hidden">
           <div className="kardex-no-print p-3 border-b border-border/40 bg-muted/20 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-3 bg-primary rounded-xs" /> {/* 🟢 Corregido: height-3 cambiado a h-3 */}
+              <div className="w-2 h-3 bg-primary rounded-xs" />
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Libro Electrónico de Movimientos</span>
               <Badge variant="secondary" className="font-mono text-[11px] bg-primary/10 border-primary/20 text-primary">
                 {movimientos.length.toLocaleString('es-PE')} líneas
@@ -315,7 +419,7 @@ export default function Kardex() {
 
           {loading ? (
             <div className="py-20 text-center font-mono text-xs text-muted-foreground/60 flex flex-col items-center justify-center gap-2">
-              <RefreshCw className="size-5 animate-spin text-primary" /> {/* 🟢 Corregido: Loader2 con animación rota sustituido por RefreshCw estable */}
+              <RefreshCw className="size-5 animate-spin text-primary" />
               <span>Calculando saldos y reconstruyendo costos promedio...</span>
             </div>
           ) : (
