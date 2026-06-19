@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
-import { AlertCircle, CheckCircle2, Loader2, DollarSign } from "lucide-react"
+import { AlertCircle, CheckCircle2, Loader2, DollarSign, Calendar as CalendarIcon } from "lucide-react"
+import { format, parseISO, isValid } from "date-fns"
+import { es } from "date-fns/locale"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -14,6 +16,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface SaldoPayload {
   empresa_id:     number
@@ -91,10 +95,10 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
   const [codigo,             setCodigo]             = useState('')
   const [descripcion,        setDescripcion]        = useState('')
   const [fecha,              setFecha]              = useState(hoy)
-  const [cantidad,           setCantidad]           = useState('')
-  const [costoUnit,          setCostoUnit]          = useState('')
   const [costoTotalOriginal, setCostoTotalOriginal] = useState<number | null>(null)
   const [camposModificados,  setCamposModificados]  = useState(false)
+  const [cantidad,           setCantidad]           = useState('')
+  const [costoUnit,          setCostoUnit]          = useState('')
 
   const [loading,     setLoading]     = useState(false)
   const [error,       setError]       = useState<string | null>(null)
@@ -155,6 +159,11 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
     setCamposModificados(true)
   }
 
+  const parseStringToDate = (dateStr: string) => {
+    const parsed = parseISO(dateStr)
+    return isValid(parsed) ? parsed : undefined
+  }
+
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!valido || loading) return
@@ -201,7 +210,6 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
       <DialogContent className="sm:max-w-[440px] text-left border-t-2 data-[edit=true]:border-t-amber-500 data-[edit=false]:border-t-blue-500" data-edit={modoEditar}>
         
-        {/* Cabecera Premium */}
         <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div className="flex gap-3">
             <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 text-primary data-[edit=true]:bg-amber-500/10 data-[edit=true]:border-amber-500/20 data-[edit=true]:text-amber-500" data-edit={modoEditar}>
@@ -218,7 +226,6 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
           </div>
         </DialogHeader>
 
-        {/* Formulario adaptado visualmente */}
         <form onSubmit={handleGuardar} className="space-y-4 pt-1">
           
           <div className="space-y-1.5">
@@ -247,13 +254,34 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
 
           <div className="space-y-1.5">
             <Label htmlFor="g-fecha" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Fecha</Label>
-            <Input
-              id="g-fecha"
-              type="date"
-              value={fecha}
-              onChange={e => setFecha(e.target.value)}
-              className="font-mono text-xs h-9 bg-card"
-            />
+            <div className="flex items-center gap-1 bg-card border border-input rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
+              <input
+                id="g-fecha"
+                type="date"
+                value={fecha}
+                onChange={e => setFecha(e.target.value)}
+                className="w-full h-9 text-xs font-mono bg-transparent border-none px-3 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden"
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
+                    <CalendarIcon className="size-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={parseStringToDate(fecha)}
+                    onSelect={(date) => {
+                      if (date) setFecha(format(date, "yyyy-MM-dd"))
+                    }}
+                    captionLayout="dropdown"
+                    locale={es}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -297,7 +325,6 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
             </span>
           </div>
 
-          {/* Mensajes del sistema */}
           {error && (
             <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-mono px-4 py-2.5 rounded-xl">
               <AlertCircle className="size-4 shrink-0" />
@@ -319,7 +346,6 @@ export default function ModalSaldoInicial({ open, empresaId, onClose, onGuardado
             </div>
           )}
 
-          {/* Footer del Formulario */}
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
             <Button type="button" variant="outline" onClick={onClose} className="cursor-pointer rounded-xl h-9 text-xs">
               Cancelar
