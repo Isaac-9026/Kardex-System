@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { AlertCircle, Filter, ShieldCheck, Printer, Download, RefreshCw, Calendar as CalendarIcon } from "lucide-react"
+import { AlertCircle, Filter, ShieldCheck, Printer, Download, RefreshCw, Calendar as CalendarIcon, Check, SlidersHorizontal } from "lucide-react"
 import { format, parseISO, isValid } from "date-fns"
 import { es } from "date-fns/locale"
 import { useKardex } from '@/hooks/useKardex'
@@ -79,6 +79,11 @@ export default function Kardex() {
   const [draftCodigo, setDraftCodigo] = useState('')
   const [draftFiltroFecha, setDraftFiltroFecha] = useState<IFiltroFecha>({ modo: 'anio_mes' })
 
+  // ESTADOS PARA CONTROLAR LA REVALIDACIÓN DE TOLERANCIA
+  const [toleranciaModo, setToleranciaModo] = useState("0.10")
+  const [toleranciaPersonalizada, setToleranciaPersonalizada] = useState("")
+  const [revalidando, setRevalidando] = useState(false)
+
   const id = Number(procesamiento_id)
 
   useEffect(() => { setDraftFiltroFecha(filtroFecha) }, [filtroFecha])
@@ -101,7 +106,31 @@ export default function Kardex() {
     const clean: IFiltroFecha = { modo: 'anio_mes' }
     setCodigo(''); setDraftCodigo('')
     setFiltroFecha(clean); setDraftFiltroFecha(clean)
+    setToleranciaModo("0.10")
+    setToleranciaPersonalizada("")
     cargarKardex(id)
+  }
+
+  // FUNCIÓN ASÍNCRONA PARA DISPARAR LA REVALIDACIÓN EN CALIENTE
+  const handleRevalidarTolerancia = async () => {
+    const tolFinal = toleranciaModo === "custom" ? (toleranciaPersonalizada || "0.10") : toleranciaModo
+    setRevalidando(true)
+    try {
+      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+      const res = await fetch(`${API_URL}/api/v1/kardex/${id}/revalidar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tolerancia: tolFinal })
+      })
+      if (res.ok) {
+        // Refrescamos los datos en memoria volviendo a cargar las líneas actualizadas
+        await cargarKardex(id, { ...filtroFecha, codigo: codigo || undefined })
+      }
+    } catch (err) {
+      console.error("Error al revalidar margen:", err)
+    } finally {
+      setRevalidando(false)
+    }
   }
 
   useEffect(() => {
@@ -137,7 +166,6 @@ export default function Kardex() {
     return Array.from(set) as string[]
   }, [movimientos])
 
-  // Helper para convertir de forma segura los strings ISO 'YYYY-MM-DD' a objetos Date
   const parseStringToDate = (dateStr?: string) => {
     if (!dateStr) return undefined
     const parsed = parseISO(dateStr)
@@ -190,6 +218,74 @@ export default function Kardex() {
             >
               <Filter className="size-3.5" /> Filtros
             </Button>
+
+
+            {/* NUEVO: BOTÓN Y PANEL FLOTANTE DE TOLERANCIA */}
+  <Popover>
+    <PopoverTrigger asChild>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 text-xs rounded-xl gap-1.5 cursor-pointer hover:bg-primary/5 hover:text-primary hover:border-primary/30"
+      >
+        <SlidersHorizontal className="size-3.5" /> Tolerancia
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent className="w-80 p-4 rounded-xl bg-popover border border-border/50 shadow-2xl" align="end">
+      <div className="flex flex-col gap-3">
+        <div className="space-y-1">
+          <h4 className="font-mono text-sm font-bold tracking-tight flex items-center gap-2">
+            <SlidersHorizontal className="size-4 text-primary" />
+            Tolerancia Permitida
+          </h4>
+          <p className="text-[10px] text-muted-foreground leading-relaxed font-mono">
+            Establece el margen de redondeo aceptable (S/.). Las diferencias que superen este límite serán marcadas como alertas críticas para detectar alteraciones manuales o descuadres injustificados en el Excel.
+          </p>
+        </div>
+
+      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg p-2            font-mono    text-[9px] leading-tight text-left">
+        ⚠️ <strong>Solo afecta a las alertas.</strong> Cambiar este margen no altera los datos del kardex, los saldos ni los costos registrados.
+      </div>
+
+        <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
+          <select 
+            value={toleranciaModo} 
+            onChange={e => setToleranciaModo(e.target.value)}
+            className="h-9 text-xs font-mono bg-card border border-input rounded-lg px-2 text-foreground outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+          >
+            <option value="0.00">0.00 (Restricción Exacta - No recomen.)</option>
+            <option value="0.05">0.05 (Estricto)</option>
+            <option value="0.10">0.10 (Estándar recomendado)</option>
+            <option value="0.50">0.50 (Flexible)</option>
+            <option value="custom">Valor personalizado...</option>
+          </select>
+
+          {toleranciaModo === "custom" && (
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Ej: 0.25"
+              value={toleranciaPersonalizada}
+              onChange={e => setToleranciaPersonalizada(e.target.value)}
+              className="h-9 text-xs font-mono bg-card px-3 rounded-lg"
+            />
+          )}
+
+          <Button 
+            size="sm" 
+            onClick={handleRevalidarTolerancia} 
+            disabled={revalidando}
+            className="w-full h-9 mt-1 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-amber-950 rounded-lg shadow-sm"
+          >
+            {revalidando ? <RefreshCw className="size-3.5 animate-spin mr-2" /> : <Check className="size-3.5 mr-2" />} 
+            Revalidar Anomalías
+          </Button>
+        </div>
+      </div>
+    </PopoverContent>
+  </Popover>
+
             <Button
               variant="outline"
               size="sm"
@@ -303,7 +399,6 @@ export default function Kardex() {
               {/*RANGO */}
               {draftFiltroFecha.modo === 'rango' && (
                 <div className="flex items-center gap-1.5">
-                  {/* Desde */}
                   <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
                     <input 
                       type="date" 
@@ -337,7 +432,6 @@ export default function Kardex() {
 
                   <span className="text-muted-foreground/40">–</span>
 
-                  {/* Hasta */}
                   <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
                     <input 
                       type="date" 

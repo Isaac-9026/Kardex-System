@@ -44,6 +44,10 @@ def upgrade() -> None:
         'Empresa del sistema'
     )
     """)
+    
+    #LÍNEA PARA BLINDAR EL ID DE EMPRESA DEL SISTEMA
+    op.execute("SELECT setval(pg_get_serial_sequence('empresa', 'id'), COALESCE(max(id), 1)) FROM empresa;")
+    
     op.create_index("ix_empresas_id", "empresa", ["id"])
 
     # ── 2. PRODUCTOS ──────────────────────────────────────────────────────────

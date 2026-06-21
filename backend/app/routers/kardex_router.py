@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Query
+from fastapi import APIRouter, Depends, UploadFile, File, Query, Body, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated, List
@@ -10,6 +10,7 @@ from app.schemas.procesamiento import ProcesamientoResumen
 from app.exceptions import ArchivoInvalidoException
 from datetime import date
 from calendar import monthrange
+from decimal import Decimal
 import io
 
 router = APIRouter(prefix="/kardex", tags=["Kardex"])
@@ -47,6 +48,31 @@ async def procesar_kardex(
     )
 
 
+# ── Revalidar Tolerancia en Caliente ──────────────────────────────────────────
+@router.post("/{procesamiento_id}/revalidar")
+async def revalidar_tolerancia(
+    procesamiento_id: int,
+    payload: dict = Body(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Recalcula las anomalías (Error A y Error B) de un procesamiento existente 
+    basándose en un nuevo límite de tolerancia sin procesar el Excel otra vez.
+    """
+    tolerancia_str = payload.get("tolerancia", "0.10")
+    try:
+        tolerancia = Decimal(tolerancia_str)
+        if tolerancia < 0:
+            raise HTTPException(status_code=400, detail="La tolerancia no puede ser negativa")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Formato de tolerancia inválido")
+
+    service = KardexService(db)
+    await service.revalidar_anomalias(procesamiento_id, tolerancia)
+
+    return {"status": "success", "tolerancia_aplicada": str(tolerancia)}
+
+
 # ── Consultar kardex con filtros ──────────────────────────────────────────────
 @router.get("/consultar/{procesamiento_id}", response_model=KardexResponse)
 async def consultar_kardex(
@@ -68,7 +94,7 @@ async def consultar_kardex(
             d = date.fromisoformat(fecha_desde)
             ultimo_dia = monthrange(d.year, d.month)[1]
             fecha_hasta = date(d.year, d.month, ultimo_dia).isoformat()
-        except ValueError: # ¡Corregido! Ya no traga cualquier error.
+        except ValueError:
             pass
 
     filtros = FiltroKardex(
