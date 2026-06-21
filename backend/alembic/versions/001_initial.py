@@ -59,6 +59,7 @@ def upgrade() -> None:
         sa.Column("descripcion", sa.String(255), nullable=True),
         sa.Column("codigo_existencia", sa.String(20), nullable=True),
         sa.Column("unidad_medida", sa.String(20), nullable=True),
+        sa.Column("almacen", sa.String(100), nullable=True),
         sa.Column("creado_en",   sa.DateTime(timezone=True),
                   server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(["empresa_id"],["empresa.id"]),
