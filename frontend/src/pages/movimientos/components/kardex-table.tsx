@@ -61,6 +61,7 @@ export interface KardexRow {
   producto?: {
     descripcion?: string;
     unidad_medida?: string;
+    almacen?: string;
     empresa?: {
       id: number;
       nombre: string;
@@ -157,7 +158,13 @@ function agruparPorProductoMes(movimientos: KardexRow[]): ProductoBlock[] {
       saldoUnit = ultima.saldo_costo_unit;
       saldoTotal = ultima.saldo_costo_total;
     }
-    bloques.push({ codigo, nombre: filas[0]?.producto?.descripcion ?? codigo, unidadMedida: filas[0]?.producto?.unidad_medida ?? "NIU", meses });
+    bloques.push({ 
+      codigo, 
+      nombre: filas[0]?.producto?.descripcion ?? codigo, 
+      unidadMedida: filas[0]?.producto?.unidad_medida ?? "NIU", 
+      almacen: filas[0]?.producto?.almacen, // 🟢 2. MAPEAMOS EL ALMACÉN
+      meses 
+    });
   }
   return bloques;
 }
@@ -486,13 +493,6 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
         </div>
 
         {/* ════ IMPRESIÓN FISCAL SUNAT ════ */}
-        {/* Renderizado vía Portal directo a document.body: así el bloque de
-            impresión queda completamente fuera del contenedor `flex flex-col`
-            de la página. Cuando vive anidado dentro de un layout flex, el
-            motor de paginación de Chrome/Edge calcula mal los saltos de
-            página tras los primeros 1-2 bloques marcados con
-            page-break-inside: avoid, dejando el resto de páginas vacías o
-            cortadas (justo el síntoma reportado: se detenía en Agosto). */}
         {createPortal(
         <div className="kp-section">
           {bloquesPrint.map((producto) => (
@@ -519,7 +519,9 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
                       <tr>
                         <td className="lbl">Código:</td><td className="val">{producto.codigo}</td>
                         <td className="lbl">Nombre:</td><td className="val">{producto.nombre}</td>
-                        <td className="lbl">Almacén:</td><td className="val">----------</td>
+                        {/* 🟢 3. SOLUCIÓN UX DIRECTA EN LA CELDA DE ALMACÉN */}
+                        <td className="lbl">Almacén:</td>
+                        <td className="val">{producto.almacen || "-------"}</td>
                         <td className="lbl">Tipo:</td><td className="val">{empresaImpresion?.tipo ?? "Mercadería"}</td>
                         <td className="lbl">Costo:</td><td className="val">{empresaImpresion?.metodo_valuacion ?? "Prom. Ponderado"}</td>
                       </tr>
@@ -570,23 +572,18 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
                           <td>{row.serie}</td>
                           <td>{row.numero}</td>
                           <td>{row.tipo_operacion}</td>
-                          <td className="td-r">{fmtCant(row.ent_cantidad)}</td>
-                          <td className="td-r">{fmtUnit(row.ent_costo_unit)}</td>
-                          <td className="td-r">{fmtTotal(row.ent_costo_total)}</td>
-                          <td className="td-r">{fmtCant(row.sal_cantidad)}</td>
-                          <td className="td-r">{fmtUnit(row.sal_costo_unit)}</td>
-                          <td className="td-r">{fmtTotal(row.sal_costo_total)}</td>
+                          <td className="td-r">{row.ent_cantidad > 0 ? fmtCant(row.ent_cantidad) : "—"}</td>
+                          <td className="td-r">{row.ent_costo_unit > 0 ? fmtUnit(row.ent_costo_unit) : "—"}</td>
+                          <td className="td-r">{row.ent_costo_total > 0 ? fmtTotal(row.ent_costo_total) : "—"}</td>
+                          <td className="td-r">{row.sal_cantidad > 0 ? fmtCant(row.sal_cantidad) : "—"}</td>
+                          <td className="td-r">{row.sal_costo_unit > 0 ? fmtUnit(row.sal_costo_unit) : "—"}</td>
+                          <td className="td-r">{row.sal_costo_total > 0 ? fmtTotal(row.sal_costo_total) : "—"}</td>
                           <td className="td-r">{fmtCant(row.saldo_cantidad)}</td>
                           <td className="td-r">{fmtUnit(row.saldo_costo_unit)}</td>
                           <td className="td-r">{fmtTotal(row.saldo_costo_total)}</td>
                         </tr>
                       ))}
                       {(() => {
-                        // OJO: el backend serializa los campos Decimal como STRING
-                        // en el JSON (ej. "3.750"), no como número. Sumar con "+"
-                        // directamente sobre esos valores hace concatenación de
-                        // texto en vez de suma aritmética y termina en NaN al
-                        // formatear. Por eso se fuerza Number(...) antes de sumar.
                         const totEntCant  = mes.filas.reduce((s, r) => s + (Number(r.ent_cantidad) || 0), 0);
                         const totEntTotal = mes.filas.reduce((s, r) => s + (Number(r.ent_costo_total) || 0), 0);
                         const totSalCant  = mes.filas.reduce((s, r) => s + (Number(r.sal_cantidad) || 0), 0);
@@ -638,5 +635,6 @@ interface ProductoBlock {
   codigo: string;
   nombre: string;
   unidadMedida: string;
+  almacen?: string;
   meses: MesBlock[];
 }
