@@ -7,18 +7,27 @@ from alembic import context
 
 # ── Importar modelos para que Alembic los detecte ────────────────────────────
 from app.core.database import Base
-from app.models import Producto, SaldoInicial, Procesamiento, Movimiento  # noqa: F401
+from app.models import Producto, SaldoInicial, Procesamiento, Movimiento 
 from app.core.config import settings
 
 # ── Config de Alembic ─────────────────────────────────────────────────────────
 config = context.config
 
-# Leer la URL desde el .env en vez del alembic.ini
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+url = settings.DATABASE_URL
+
+if url:
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+        
+    if "postgresql+asyncpg" not in url:
+        url = url.replace("postgresql://", "postgresql+asyncpg://")
+
+config.set_main_option("sqlalchemy.url", url)
+# ──────────────────────────────────────────────────────────────────────────────
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
+        
 target_metadata = Base.metadata
 
 
@@ -34,7 +43,7 @@ def run_migrations_offline() -> None:
         compare_server_defaults = True,
     )
     with context.begin_transaction():
-        context.run_migrations()
+            context.run_migrations()
 
 
 # ── Modo online (conexión async real) ─────────────────────────────────────────
