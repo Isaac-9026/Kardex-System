@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import {
   LineChart,
@@ -13,7 +11,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { FileSpreadsheet, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -55,9 +52,8 @@ export default function KardexDashboard() {
     const fetchMetricas = async () => {
       try {
         setCargando(true);
-        // NOTA: Ajusta esta URL base ('http://localhost:8000') por tu variable de entorno
-        // Ej: import.meta.env.VITE_API_URL o process.env.NEXT_PUBLIC_API_URL si usas Next.js
-        const apiUrl = import.meta.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
         
         const res = await fetch(`${apiUrl}/api/v1/dashboard/metricas`);
         if (!res.ok) {
@@ -149,7 +145,7 @@ export default function KardexDashboard() {
                     axisLine={false} 
                     tickLine={false} 
                     tick={{ fontSize: 12, fill: '#888' }}
-                    allowDecimals={false} // Para que no muestre 1.5 archivos
+                    allowDecimals={false}
                   />
                   <Tooltip 
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
