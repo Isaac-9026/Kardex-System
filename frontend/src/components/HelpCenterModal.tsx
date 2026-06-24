@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { HelpCircle, PlayCircle } from "lucide-react"
 import { runGuidedTour } from "./GuidedTour"
+import { useNavigate } from "react-router-dom"
 
 interface HelpCenterModalProps {
   open: boolean
@@ -21,6 +22,8 @@ interface HelpCenterModalProps {
 }
 
 export function HelpCenterModal({ open, onOpenChange }: HelpCenterModalProps) {
+  const navigate = useNavigate()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] max-h-[80vh] overflow-y-auto">
@@ -45,7 +48,11 @@ export function HelpCenterModal({ open, onOpenChange }: HelpCenterModalProps) {
               className="gap-1.5"
               onClick={() => {
                 onOpenChange(false)
-                runGuidedTour(true)
+                if (window.location.pathname !== "/") {
+                  navigate("/?startTour=true")
+                } else {
+                  runGuidedTour(true)
+                }
               }}
             >
               <PlayCircle className="h-4 w-4" />

@@ -114,7 +114,16 @@ export function runGuidedTour(force = false) {
 export function GuidedTourInit() {
   useEffect(() => {
     const timeout = setTimeout(() => {
-      runGuidedTour(false);
+      const searchParams = new URLSearchParams(window.location.search);
+      const startTour = searchParams.get("startTour") === "true";
+      if (startTour) {
+        // Limpiamos el parámetro de la URL sin recargar la página
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+        runGuidedTour(true);
+      } else {
+        runGuidedTour(false);
+      }
     }, 1000);
 
     return () => clearTimeout(timeout);
