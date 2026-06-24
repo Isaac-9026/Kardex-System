@@ -18,6 +18,7 @@ import KardexTable, { type KardexTableHandle } from './components/kardex-table'
 import { cn } from "@/lib/utils"
 import AlertaBanner from '@/components/AlertaBanner'
 import BadgeProducto from '@/components/BadgeProducto'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 import type { FiltroFecha as IFiltroFecha } from '@/types'
 
 const Sparkline = ({ color }: { color: string }) => {
@@ -237,6 +238,7 @@ export default function Kardex() {
           <h4 className="font-mono text-sm font-bold tracking-tight flex items-center gap-2">
             <SlidersHorizontal className="size-4 text-primary" />
             Tolerancia Permitida
+            <InfoTooltip content="Representa la diferencia máxima permitida entre los valores calculados por el sistema y los valores registrados antes de marcar una inconsistencia." />
           </h4>
           <p className="text-[10px] text-muted-foreground leading-relaxed font-mono">
             Establece el margen de redondeo aceptable (S/.). Las diferencias que superen este límite serán marcadas como alertas críticas para detectar alteraciones manuales o descuadres injustificados en el Excel.
@@ -496,12 +498,21 @@ export default function Kardex() {
             <div className="flex items-center gap-4">
               {mostrarSemaforo && (
                 <div className="flex items-center gap-3 font-mono text-[10px] text-muted-foreground/60 hidden sm:flex">
-                  {[{ bg: "bg-emerald-500", label: "OK" }, { bg: "bg-amber-500", label: "Reconstruido" }, { bg: "bg-red-500", label: "Error" }].map(item => (
-                    <span key={item.label} className="flex items-center gap-1">
-                      <span className={cn("w-1.5 h-1.5 rounded-full inline-block", item.bg)} />
-                      {item.label}
-                    </span>
-                  ))}
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full inline-block bg-emerald-500" />
+                    OK
+                    <InfoTooltip iconClassName="h-3 w-3" content="Sin inconsistencias detectadas." />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full inline-block bg-amber-500" />
+                    Reconstruido
+                    <InfoTooltip iconClassName="h-3 w-3" content="Advertencia: El costo fue reconstruido o hay diferencias menores al margen de tolerancia." />
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full inline-block bg-red-500" />
+                    Error
+                    <InfoTooltip iconClassName="h-3 w-3" content="Error Crítico: Existen descuadres fuera del límite de tolerancia o saldo negativo." />
+                  </span>
                 </div>
               )}
               <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/80">
