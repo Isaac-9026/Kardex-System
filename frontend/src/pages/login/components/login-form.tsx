@@ -145,7 +145,7 @@ export function LoginForm({ className, onShakeTrigger, ...props }: LoginFormProp
           {/* Columna Derecha: Imagen de Marca con Filtro Estilizado */}
           <div className="bg-muted relative hidden md:block border-l border-border/30">
             <img
-              src="https://scontent.flim4-3.fna.fbcdn.net/v/t39.30808-6/449044196_323205804174994_1975367383698928735_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2048&ctp=s2048x2048&_nc_cat=102&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeF4DVbHbL6xGNs3BGg4cybFGoVPijwOyjYahU-KPA7KNjWsoT-4qL7VciUOEgnG6tNqkh9YVqGeTOTRr1-EgS4t&_nc_ohc=vDYdDzth3K0Q7kNvwE0aeSh&_nc_oc=Adq83mxCwEaqW5fSoIYmR83lYun8fLu7mgGlrLv0UQyDv-WfacUJLo2LNZVAfWarEYk&_nc_zt=23&_nc_ht=scontent.flim4-3.fna&_nc_gid=ljnv4k2lIGGdCjMuCYiITg&_nc_ss=7b2a8&oh=00_Af8twXPL4PnNAmyJse4HDKZwblhAX_nmIPmewWfCJVqO9Q&oe=6A394C60"
+              src="/public/img.png"
               alt="Kardex Background"
               className="absolute inset-0 h-full w-full object-cover brightness-[0.4] dark:brightness-[0.35]"
             />
