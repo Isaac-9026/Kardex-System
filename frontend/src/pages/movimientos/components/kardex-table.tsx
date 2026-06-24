@@ -251,7 +251,7 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
       );
 
     return (
-      <div className="w-full relative select-none font-mono">
+      <div className="w-full relative font-mono">
         <style>{`
           @media screen { .kp-section { display:none !important; } }
 

@@ -45,9 +45,9 @@ export function runGuidedTour(force = false) {
       {
         element: "#tour-empresa",
         popover: {
-          title: "Selecciona una Empresa",
+          title: "Selecciona una Empresa (Opcional)",
           description:
-            "Puedes seleccionar la empresa a la que pertenecen los movimientos que vas a procesar.",
+            "Puedes seleccionar la empresa a la que pertenecen los movimientos que vas a procesar. Si no estás seguro, puedes dejar este campo sin asignar y gestionarlo posteriormente desde el módulo de Empresas y Productos.",
           side: "bottom",
           align: "start",
         },
