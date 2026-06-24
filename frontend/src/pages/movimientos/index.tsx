@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { AlertCircle, Filter, ShieldCheck, Printer, Download, RefreshCw, Calendar as CalendarIcon, Check, SlidersHorizontal } from "lucide-react"
+import { AlertCircle, FileSpreadsheet, Search, RefreshCw, Printer, FileDown, Filter, CalendarIcon, Check, SlidersHorizontal, Package, ListOrdered, AlertTriangle, TrendingDown, FileWarning, Lightbulb, CheckCircle2, XCircle, Info, ShieldCheck, Download } from 'lucide-react'
 import { format, parseISO, isValid } from "date-fns"
 import { es } from "date-fns/locale"
 import { useKardex } from '@/hooks/useKardex'
@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/Badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { toast } from "sonner"
 import KardexTable, { type KardexTableHandle } from './components/kardex-table'
 
 import { cn } from "@/lib/utils"
@@ -36,12 +38,15 @@ const Sparkline = ({ color }: { color: string }) => {
 }
 
 interface MetricCardProps {
-  label: string; value: string; sub: string; colorClass: string; strokeColor: string
+  label: string; value: string; sub: string; colorClass: string; strokeColor: string; tooltip?: string
 }
-const MetricCard = ({ label, value, sub, colorClass, strokeColor }: MetricCardProps) => (
+const MetricCard = ({ label, value, sub, colorClass, strokeColor, tooltip }: MetricCardProps) => (
   <div className="flex-1 bg-card/30 backdrop-blur-md border border-border/50 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden min-w-[180px]">
     <div className="space-y-1 z-10 text-left">
-      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/70">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/70">{label}</span>
+        {tooltip && <InfoTooltip content={tooltip} />}
+      </div>
       <h3 className={`text-2xl font-black font-mono tracking-tight ${colorClass}`}>{value}</h3>
       <p className="text-[10px] font-mono text-muted-foreground/50">{sub}</p>
     </div>
@@ -60,6 +65,22 @@ export default function Kardex() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  useEffect(() => {
+    if (procesamiento_id === 'ultimo') {
+      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+      fetch(`${API_URL}/api/v1/historial/`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.length > 0) {
+            navigate(`/kardex/${data[0].id}`, { replace: true })
+          } else {
+            navigate('/historial', { replace: true })
+          }
+        })
+        .catch(() => navigate('/historial', { replace: true }))
+    }
+  }, [procesamiento_id, navigate])
+
   const {
     movimientos, metricas, alertas,
     loading, error, exporting,
@@ -76,7 +97,7 @@ export default function Kardex() {
   } | null>(null)
   
   const [mostrarSemaforo, setMostrarSemaforo] = useState(false)
-  const [filtrosAbiertos, setFiltrosAbiertos] = useState(true)
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
   const [draftCodigo, setDraftCodigo] = useState('')
   const [draftFiltroFecha, setDraftFiltroFecha] = useState<IFiltroFecha>({ modo: 'anio_mes' })
 
@@ -85,20 +106,27 @@ export default function Kardex() {
   const [toleranciaPersonalizada, setToleranciaPersonalizada] = useState("")
   const [revalidando, setRevalidando] = useState(false)
 
+  const [toastPending, setToastPending] = useState<string | null>(null)
+
   const id = Number(procesamiento_id)
 
   useEffect(() => { setDraftFiltroFecha(filtroFecha) }, [filtroFecha])
 
+  // EFFECT PARA TOAST DINÁMICO TRAS REVALIDAR
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (draftCodigo === codigo) return
-      setCodigo(draftCodigo)
-      cargarKardex(id, { ...draftFiltroFecha, codigo: draftCodigo || undefined })
-    }, 400)
-    return () => clearTimeout(t)
-  }, [draftCodigo])
+    if (toastPending && !loading) {
+      const anomalias = movimientos.filter(m => m.error_a || m.error_b || m.saldo_negativo).length
+      const conformes = movimientos.length - anomalias
+      toast.success(`Tolerancia actualizada a ${toastPending}.`, {
+        description: `Se encontraron ${anomalias} anomalías y ${conformes} registros conformes.`,
+        duration: 6000
+      })
+      setToastPending(null)
+    }
+  }, [movimientos, loading, toastPending])
 
   const aplicarFiltros = () => {
+    setCodigo(draftCodigo)
     setFiltroFecha(draftFiltroFecha)
     cargarKardex(id, { ...draftFiltroFecha, codigo: draftCodigo || undefined })
   }
@@ -126,6 +154,7 @@ export default function Kardex() {
       if (res.ok) {
         // Refrescamos los datos en memoria volviendo a cargar las líneas actualizadas
         await cargarKardex(id, { ...filtroFecha, codigo: codigo || undefined })
+        setToastPending(tolFinal)
       }
     } catch (err) {
       console.error("Error al revalidar margen:", err)
@@ -159,13 +188,44 @@ export default function Kardex() {
     descargarExcel(codigo || undefined, filtroFecha.anio, filtroFecha.mes, filtroFecha.fecha_desde, filtroFecha.fecha_hasta)
 
   const handleImprimir = () => {
-    window.print()
+    toast.info("Consejo de impresión", {
+      description: "Antes de generar un reporte o imprimir, aplica los filtros necesarios. El reporte se genera únicamente con la información actualmente visible. Además, recuerda configurar la orientación en 'Horizontal'.",
+      duration: 6000,
+      action: {
+        label: 'Ver Manual',
+        onClick: () => window.open('/manual.pdf', '_blank')
+      }
+    });
+    setTimeout(() => {
+      window.print()
+    }, 1500)
   }
 
-  const codigosVisibles = useMemo(() => {
-    const set = new Set(movimientos.map(m => m.codigo).filter(Boolean))
-    return Array.from(set) as string[]
+  const codigosVisiblesSet = useMemo(() => new Set(movimientos.map(m => m.codigo).filter(Boolean)), [movimientos])
+  const codigosVisibles = Array.from(codigosVisiblesSet) as string[]
+  const productosVisibles = codigosVisiblesSet.size
+  const movimientosFiltrados = movimientos.length
+  
+  const codigosConNegativo = useMemo(() => {
+    return new Set(movimientos.filter(m => m.saldo_negativo).map(m => m.codigo)).size
   }, [movimientos])
+
+  const codigosConSaldoInicial = useMemo(() => {
+    return new Set(movimientos.filter(m => m.es_saldo_inicial).map(m => m.codigo)).size
+  }, [movimientos])
+  const productosSinSaldoInicial = productosVisibles - codigosConSaldoInicial
+
+  const resumenSaldosIniciales = useMemo(() => {
+    const codigos = Array.from(new Set(movimientos.map(m => m.codigo).filter(Boolean))) as string[];
+    return codigos.map(cod => {
+      const mov = movimientos.find(m => m.codigo === cod && m.es_saldo_inicial);
+      return {
+        codigo: cod,
+        fecha: mov?.fecha ? format(parseISO(mov.fecha), "dd/MM/yyyy") : null,
+        hasSaldo: !!mov
+      };
+    }).sort((a, b) => a.codigo.localeCompare(b.codigo));
+  }, [movimientos]);
 
   const parseStringToDate = (dateStr?: string) => {
     if (!dateStr) return undefined
@@ -229,7 +289,7 @@ export default function Kardex() {
         size="sm"
         className="h-9 text-xs rounded-xl gap-1.5 cursor-pointer hover:bg-primary/5 hover:text-primary hover:border-primary/30"
       >
-        <SlidersHorizontal className="size-3.5" /> Tolerancia
+        <SlidersHorizontal className="size-3.5" /> Tolerancia: {toleranciaModo === "custom" ? (toleranciaPersonalizada || "0.10") : toleranciaModo}
       </Button>
     </PopoverTrigger>
     <PopoverContent className="w-80 p-4 rounded-xl bg-popover border border-border/50 shadow-2xl" align="end">
@@ -296,23 +356,40 @@ export default function Kardex() {
             >
               <ShieldCheck className="size-3.5" /> Revisión
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleImprimir}
-              disabled={movimientos.length === 0}
-              className="h-9 text-xs text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl cursor-pointer"
-            >
-              <Printer className="size-3.5 mr-1" /> Reporte
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleExportar}
-              disabled={exporting || movimientos.length === 0}
-              className="h-9 text-xs font-semibold shadow-sm bg-primary text-primary-foreground rounded-xl cursor-pointer gap-1.5"
-            >
-              {exporting ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Exportar
-            </Button>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleImprimir}
+                    disabled={movimientos.length === 0}
+                    className="h-9 text-xs text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl cursor-pointer"
+                  >
+                    <Printer className="size-3.5 mr-1" /> Reporte
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs font-mono max-w-xs">
+                  Genera una vista optimizada en PDF lista para impresión (Kardex Fiscal).
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    onClick={handleExportar}
+                    disabled={exporting || movimientos.length === 0}
+                    className="h-9 text-xs font-semibold shadow-sm bg-primary text-primary-foreground rounded-xl cursor-pointer gap-1.5"
+                  >
+                    {exporting ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Exportar
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs font-mono max-w-xs">
+                  Descarga los datos actuales en formato Excel (.xlsx).
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
@@ -321,11 +398,82 @@ export default function Kardex() {
         </div>
 
         {metricas && (
-          <div className="kardex-no-print w-full grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard label="Total Movimientos" value={totalRegistros.toLocaleString('es-PE')} sub="operaciones" colorClass="text-foreground" strokeColor="#3b82f6" />
-            <MetricCard label="Total Entradas" value={fmtS(metricas.total_ent_costo)} sub={`${fmt(metricas.total_ent_cantidad)} unds`} colorClass="text-blue-400" strokeColor="#2563eb" />
-            <MetricCard label="Total Salidas" value={fmtS(metricas.total_sal_costo)} sub={`${fmt(metricas.total_sal_cantidad)} unds`} colorClass="text-red-400" strokeColor="#ef4444" />
-            <MetricCard label="Saldo de Cierre" value={fmtS(metricas.saldo_final_costo)} sub={`${fmt(metricas.saldo_final_cantidad)} unds`} colorClass="text-amber-400" strokeColor="#f59e0b" />
+          <div className="flex flex-col gap-3 kardex-no-print w-full">
+            <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard label="Total Movimientos" value={totalRegistros.toLocaleString('es-PE')} sub="operaciones" colorClass="text-foreground" strokeColor="#3b82f6" tooltip="Cantidad total de transacciones (entradas y salidas) evaluadas en este periodo." />
+              <MetricCard label="Total Entradas" value={fmtS(metricas.total_ent_costo)} sub={`${fmt(metricas.total_ent_cantidad)} unds`} colorClass="text-blue-400" strokeColor="#2563eb" tooltip="Suma del costo total de todas las entradas (compras, etc.) en el periodo filtrado." />
+              <MetricCard label="Total Salidas" value={fmtS(metricas.total_sal_costo)} sub={`${fmt(metricas.total_sal_cantidad)} unds`} colorClass="text-red-400" strokeColor="#ef4444" tooltip="Suma del costo total de todas las salidas (ventas, despachos) en el periodo filtrado." />
+              <MetricCard label="Saldo de Cierre" value={fmtS(metricas.saldo_final_costo)} sub={`${fmt(metricas.saldo_final_cantidad)} unds`} colorClass="text-amber-400" strokeColor="#f59e0b" tooltip="Valorización total del inventario al finalizar el periodo filtrado." />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono mt-1">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
+                <Package className="size-3.5" />
+                <span>Productos: <strong className="text-foreground">{productosVisibles}</strong></span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
+                <ListOrdered className="size-3.5" />
+                <span>Movimientos: <strong className="text-foreground">{movimientosFiltrados}</strong></span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
+                <TrendingDown className={cn("size-3.5", codigosConNegativo > 0 && "text-red-500")} />
+                <span>Con saldo negativo: <strong className={cn("text-foreground", codigosConNegativo > 0 && "text-red-600 dark:text-red-400")}>{codigosConNegativo}</strong></span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
+                <FileWarning className={cn("size-3.5", productosSinSaldoInicial > 0 && "text-amber-500")} />
+                <span>Sin saldo inicial: <strong className={cn("text-foreground", productosSinSaldoInicial > 0 && "text-amber-600 dark:text-amber-400")}>{productosSinSaldoInicial}</strong></span>
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-1.5 h-auto px-2.5 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-medium ml-auto md:ml-0 hover:bg-blue-500/20 cursor-pointer shadow-none">
+                    <CalendarIcon className="size-3.5" />
+                    <span>Ver Fechas de Saldos Inic.</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0 rounded-xl overflow-hidden shadow-xl border-border/50" align="end">
+                  <div className="bg-muted/60 px-4 py-3 border-b border-border/50">
+                    <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                      <CalendarIcon className="size-4 text-blue-500" />
+                      Saldos Iniciales (BD)
+                    </h4>
+                    <p className="text-[10px] font-mono text-muted-foreground mt-1">Resumen de la fecha de inicio tomada por producto.</p>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-card sticky top-0 border-b border-border/50 shadow-sm z-10">
+                        <tr>
+                          <th className="px-4 py-2 font-bold text-muted-foreground">Código</th>
+                          <th className="px-4 py-2 font-bold text-muted-foreground">Fecha del Saldo</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/30">
+                        {resumenSaldosIniciales.map(r => (
+                          <tr key={r.codigo} className="hover:bg-muted/40 transition-colors">
+                            <td className="px-4 py-2 font-mono font-bold text-blue-600 dark:text-blue-400">{r.codigo}</td>
+                            <td className="px-4 py-2 font-mono">
+                              {r.hasSaldo ? (
+                                <span className="text-foreground">{r.fecha}</span>
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-500 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
+                                  <AlertTriangle className="size-3" /> No tiene
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {resumenSaldosIniciales.length === 0 && (
+                          <tr>
+                            <td colSpan={2} className="px-4 py-6 text-center text-muted-foreground font-mono">No hay productos visibles.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+
           </div>
         )}
 
@@ -498,20 +646,29 @@ export default function Kardex() {
             <div className="flex items-center gap-4">
               {mostrarSemaforo && (
                 <div className="flex items-center gap-3 font-mono text-[10px] text-muted-foreground/60 hidden sm:flex">
+  
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full inline-block bg-emerald-500" />
-                    OK
-                    <InfoTooltip iconClassName="h-3 w-3" content="Sin inconsistencias detectadas." />
+                    Correcto
+                    <InfoTooltip
+                      iconClassName="h-3 w-3"
+                      content="El movimiento fue validado correctamente y no se detectaron inconsistencias."/>
                   </span>
+
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full inline-block bg-amber-500" />
-                    Reconstruido
-                    <InfoTooltip iconClassName="h-3 w-3" content="Advertencia: El costo fue reconstruido o hay diferencias menores al margen de tolerancia." />
+                    Advertencia
+                    <InfoTooltip
+                      iconClassName="h-3 w-3"
+                      content="Se detectó un costo reconstruido o una diferencia que no supera el nivel de tolerancia configurado."/>
                   </span>
+
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full inline-block bg-red-500" />
-                    Error
-                    <InfoTooltip iconClassName="h-3 w-3" content="Error Crítico: Existen descuadres fuera del límite de tolerancia o saldo negativo." />
+                    Inconsistencia
+                    <InfoTooltip
+                      iconClassName="h-3 w-3"
+                      content="Se detectaron diferencias fuera del nivel de tolerancia, errores de cálculo o problemas que requieren revisión."/>
                   </span>
                 </div>
               )}

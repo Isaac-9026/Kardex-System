@@ -13,7 +13,6 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
-import { SidebarNotification } from "@/components/sidebar-notification"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -58,10 +57,9 @@ const data = {
       label: "Análisis",
       items: [
         {
-          title: "Movimientos",
-          url: "kardex/:procesamiento_id",
+          title: "Último Procesamiento",
+          url: "/kardex/ultimo",
           icon: ArrowUpDown,
-          disabled: true,
         },
       ],
     },
@@ -129,7 +127,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <SidebarNotification />
+
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
