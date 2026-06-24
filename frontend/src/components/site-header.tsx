@@ -7,9 +7,12 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CommandSearch, SearchTrigger } from "@/components/command-search"
 import { ModeToggle } from "@/components/mode-toggle"
 import { getAppUrl } from "@/lib/utils"
+import { HelpCenterModal } from "@/components/HelpCenterModal"
+import { HelpCircle } from "lucide-react"
 
 export function SiteHeader() {
   const [searchOpen, setSearchOpen] = React.useState(false)
+  const [helpOpen, setHelpOpen] = React.useState(false)
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -46,11 +49,22 @@ export function SiteHeader() {
                 GitHub
               </a>
             </Button>
+            <Button
+              id="tour-help-center"
+              variant="outline"
+              size="sm"
+              onClick={() => setHelpOpen(true)}
+              className="gap-1.5 hidden sm:flex text-muted-foreground hover:text-foreground"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Ayuda
+            </Button>
             <ModeToggle />
           </div>
         </div>
       </header>
       <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      <HelpCenterModal open={helpOpen} onOpenChange={setHelpOpen} />
     </>
   )
 }
