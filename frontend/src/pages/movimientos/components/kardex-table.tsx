@@ -158,11 +158,14 @@ function agruparPorProductoMes(movimientos: KardexRow[]): ProductoBlock[] {
       saldoUnit = ultima.saldo_costo_unit;
       saldoTotal = ultima.saldo_costo_total;
     }
+    const rowConProducto = filas.find((f) => f.producto?.empresa) || filas[0];
+
     bloques.push({ 
       codigo, 
-      nombre: filas[0]?.producto?.descripcion ?? codigo, 
-      unidadMedida: filas[0]?.producto?.unidad_medida ?? "NIU",
-      almacen: filas[0]?.producto?.almacen,
+      nombre: rowConProducto?.producto?.descripcion ?? codigo, 
+      unidadMedida: rowConProducto?.producto?.unidad_medida ?? "NIU",
+      almacen: rowConProducto?.producto?.almacen,
+      empresa: rowConProducto?.producto?.empresa,
       meses 
     });
   }
@@ -529,15 +532,15 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
                   <div className="kp-empresa">
                     <div className="kp-empresa-field">
                       <span className="kp-empresa-lbl">Razón social:</span>
-                      <span className="kp-empresa-val">{empresaImpresion?.razon_social ?? ""}</span>
+                      <span className="kp-empresa-val">{producto.empresa?.nombre ?? empresaImpresion?.razon_social ?? ""}</span>
                     </div>
                     <div className="kp-empresa-field">
                       <span className="kp-empresa-lbl">Ruc:</span>
-                      <span className="kp-empresa-val">{empresaImpresion?.ruc ?? ""}</span>
+                      <span className="kp-empresa-val">{producto.empresa?.ruc ?? empresaImpresion?.ruc ?? ""}</span>
                     </div>
                     <div className="kp-empresa-field">
                       <span className="kp-empresa-lbl">Dirección:</span>
-                      <span className="kp-empresa-val">{empresaImpresion?.establecimiento ?? ""}</span>
+                      <span className="kp-empresa-val">{producto.empresa?.direccion ?? empresaImpresion?.establecimiento ?? ""}</span>
                     </div>
                   </div>
                   <div className="kp-mes-titulo">INVENTARIO VALORIZADO DE {mes.mesLabel}</div>
@@ -674,5 +677,11 @@ interface ProductoBlock {
   nombre: string;
   unidadMedida: string;
   almacen?: string;
+  empresa?: {
+    id: number;
+    nombre: string;
+    ruc: string;
+    direccion: string | null;
+  };
   meses: MesBlock[];
 }

@@ -152,10 +152,15 @@ class ProductoRepository:
         empresa_destino = empresa_id if empresa_id else EMPRESA_SIN_ASIGNAR_ID
 
         # 1. Búsqueda global en toda la BD por código
-        result = await self.db.execute(
-            select(Producto).where(Producto.codigo.in_(codigos))
-        )
+        stmt = select(Producto).where(Producto.codigo.in_(codigos))
+        result = await self.db.execute(stmt)
         existentes = {p.codigo: p for p in result.scalars().all()}
+
+        # 1.5. Actualizar empresa si el producto estaba "Sin asignar"
+        if empresa_destino != EMPRESA_SIN_ASIGNAR_ID:
+            for p in existentes.values():
+                if p.empresa_id == EMPRESA_SIN_ASIGNAR_ID:
+                    p.empresa_id = empresa_destino
 
         # 2. Identificar cuáles no existen
         faltantes = [c for c in codigos if c not in existentes]
