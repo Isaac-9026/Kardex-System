@@ -15,6 +15,8 @@ import Historial from '@/pages/historial/index'
 import SaldosIniciales from '@/pages/saldos-iniciales/index'
 import Empresas from '@/pages/empresas/index' 
 import Productos from '@/pages/productos/index'
+import GuiaInconsistencias from '@/pages/guia-inconsistencias/index'
+import ManualUsuario from '@/pages/manual/index'
 
 export default function App() {
   return (
@@ -46,6 +48,8 @@ export default function App() {
           <Route path="/saldos"                   element={<SaldosIniciales />} />
           <Route path="/empresas"                 element={<Empresas />} />
           <Route path="/productos"                element={<Productos />} />
+          <Route path="/guia-inconsistencias"     element={<GuiaInconsistencias />} />
+          <Route path="/manual"                   element={<ManualUsuario />} />
         </Route>
       </Routes>
       </ThemeProvider>

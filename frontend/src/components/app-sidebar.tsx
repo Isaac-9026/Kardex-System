@@ -8,6 +8,8 @@ import {
   Workflow,
   ClipboardList,
   Archive,
+  BookOpen,
+  FileText,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -80,6 +82,21 @@ const data = {
           title: "Empresas",
           url: "/empresas",
           icon: Boxes,
+        },
+      ],
+    },
+    {
+      label: "Ayuda",
+      items: [
+        {
+          title: "Guía de Inconsistencias",
+          url: "/guia-inconsistencias",
+          icon: BookOpen,
+        },
+        {
+          title: "Manual de Usuario",
+          url: "/manual",
+          icon: FileText,
         },
       ],
     },
