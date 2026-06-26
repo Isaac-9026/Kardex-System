@@ -245,13 +245,13 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
 
     if (movimientos.length === 0)
       return (
-        <div className="p-10 text-center font-mono text-xs text-muted-foreground/60 bg-card/10 rounded-xl border border-dashed">
+        <div className="p-10 text-center text-sm text-muted-foreground/60 bg-card/10 rounded-xl border border-dashed">
           Sin movimientos registrados.
         </div>
       );
 
     return (
-      <div className="w-full relative font-mono">
+      <div className="w-full relative">
         <style>{`
           @media screen { .kp-section { display:none !important; } }
 

@@ -44,11 +44,11 @@ const MetricCard = ({ label, value, sub, colorClass, strokeColor, tooltip }: Met
   <div className="flex-1 bg-card/30 backdrop-blur-md border border-border/50 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden min-w-[180px]">
     <div className="space-y-1 z-10 text-left">
       <div className="flex items-center gap-1.5">
-        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/70">{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{label}</span>
         {tooltip && <InfoTooltip content={tooltip} />}
       </div>
-      <h3 className={`text-2xl font-black font-mono tracking-tight ${colorClass}`}>{value}</h3>
-      <p className="text-[10px] font-mono text-muted-foreground/50">{sub}</p>
+      <h3 className={`text-2xl font-bold tracking-tight ${colorClass}`}>{value}</h3>
+      <p className="text-xs text-muted-foreground/60">{sub}</p>
     </div>
     <div className="absolute right-4 bottom-3 z-0">
       <Sparkline color={strokeColor} />
@@ -234,7 +234,7 @@ export default function Kardex() {
   }
 
   if (!id) return (
-    <div className="min-h-screen flex items-center justify-center font-mono text-sm text-destructive bg-background">
+    <div className="min-h-screen flex items-center justify-center text-sm text-destructive bg-background">
       ⚠️ ID de procesamiento inválido.
     </div>
   )
@@ -252,10 +252,10 @@ export default function Kardex() {
         
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/40 pb-4 text-left kardex-no-print">
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-              Kardex Valorizado <span className="text-primary">#{id}</span>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Kardex Valorizado de Movimientos
             </h1>
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="text-sm text-muted-foreground">
               {totalRegistros.toLocaleString('es-PE')} transacciones calculadas bajo Costo Prom. Ponderado.
             </p>
           </div>
@@ -295,17 +295,17 @@ export default function Kardex() {
     <PopoverContent className="w-80 p-4 rounded-xl bg-popover border border-border/50 shadow-2xl" align="end">
       <div className="flex flex-col gap-3">
         <div className="space-y-1">
-          <h4 className="font-mono text-sm font-bold tracking-tight flex items-center gap-2">
+          <h4 className="text-sm font-semibold tracking-tight flex items-center gap-2">
             <SlidersHorizontal className="size-4 text-primary" />
             Tolerancia Permitida
             <InfoTooltip content="Representa la diferencia máxima permitida entre los valores calculados por el sistema y los valores registrados antes de marcar una inconsistencia." />
           </h4>
-          <p className="text-[10px] text-muted-foreground leading-relaxed font-mono">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Establece el margen de redondeo aceptable (S/.). Las diferencias que superen este límite serán marcadas como alertas críticas para detectar alteraciones manuales o descuadres injustificados en el Excel.
           </p>
         </div>
 
-      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg p-2            font-mono    text-[9px] leading-tight text-left">
+      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg p-3 text-xs leading-tight text-left">
         ⚠️ <strong>Solo afecta a las alertas.</strong> Cambiar este margen no altera los datos del kardex, los saldos ni los costos registrados.
       </div>
 
@@ -313,7 +313,7 @@ export default function Kardex() {
           <select 
             value={toleranciaModo} 
             onChange={e => setToleranciaModo(e.target.value)}
-            className="h-9 text-xs font-mono bg-card border border-input rounded-lg px-2 text-foreground outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+            className="h-9 text-xs bg-card border border-input rounded-lg px-2 text-foreground outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
           >
             <option value="0.00">0.00 (Restricción Exacta - No recomen.)</option>
             <option value="0.05">0.05 (Estricto)</option>
@@ -330,7 +330,7 @@ export default function Kardex() {
               placeholder="Ej: 0.25"
               value={toleranciaPersonalizada}
               onChange={e => setToleranciaPersonalizada(e.target.value)}
-              className="h-9 text-xs font-mono bg-card px-3 rounded-lg"
+              className="h-9 text-xs bg-card px-3 rounded-lg"
             />
           )}
 
@@ -369,7 +369,7 @@ export default function Kardex() {
                     <Printer className="size-3.5 mr-1" /> Reporte
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs font-mono max-w-xs">
+                <TooltipContent side="bottom" className="text-xs max-w-xs">
                   Genera una vista optimizada en PDF lista para impresión (Kardex Fiscal).
                 </TooltipContent>
               </Tooltip>
@@ -385,7 +385,7 @@ export default function Kardex() {
                     {exporting ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Exportar
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs font-mono max-w-xs">
+                <TooltipContent side="bottom" className="text-xs max-w-xs">
                   Descarga los datos actuales en formato Excel (.xlsx).
                 </TooltipContent>
               </Tooltip>
@@ -406,7 +406,7 @@ export default function Kardex() {
               <MetricCard label="Saldo de Cierre" value={fmtS(metricas.saldo_final_costo)} sub={`${fmt(metricas.saldo_final_cantidad)} unds`} colorClass="text-amber-400" strokeColor="#f59e0b" tooltip="Valorización total del inventario al finalizar el periodo filtrado." />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono mt-1">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] mt-1">
               <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
                 <Package className="size-3.5" />
                 <span>Productos: <strong className="text-foreground">{productosVisibles}</strong></span>
@@ -436,7 +436,7 @@ export default function Kardex() {
                       <CalendarIcon className="size-4 text-blue-500" />
                       Saldos Iniciales (BD)
                     </h4>
-                    <p className="text-[10px] font-mono text-muted-foreground mt-1">Resumen de la fecha de inicio tomada por producto.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Resumen de la fecha de inicio tomada por producto.</p>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     <table className="w-full text-xs text-left">
@@ -463,7 +463,7 @@ export default function Kardex() {
                         ))}
                         {resumenSaldosIniciales.length === 0 && (
                           <tr>
-                            <td colSpan={2} className="px-4 py-6 text-center text-muted-foreground font-mono">No hay productos visibles.</td>
+                            <td colSpan={2} className="px-4 py-6 text-center text-sm text-muted-foreground">No hay productos visibles.</td>
                           </tr>
                         )}
                       </tbody>
@@ -480,32 +480,32 @@ export default function Kardex() {
         {filtrosAbiertos && (
           <div className="kardex-no-print w-full flex flex-wrap items-center gap-4 bg-card/30 backdrop-blur-md border border-border/50 rounded-xl p-3 text-left">
             <div className="flex items-center gap-2 pr-2 border-r border-border/40">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/60">Filtrar: </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Filtrar: </span>
             </div>
 
-            <div className="flex items-center gap-1.5 font-mono text-xs">
+            <div className="flex items-center gap-1.5 text-xs">
               <span className="text-muted-foreground/80">Cód:</span>
-              <Input value={draftCodigo} onChange={e => setDraftCodigo(e.target.value)} placeholder="011039" className="w-24 h-8 text-xs font-mono bg-card" />
+              <Input value={draftCodigo} onChange={e => setDraftCodigo(e.target.value)} placeholder="011039" className="w-24 h-8 text-xs bg-card" />
             </div>
 
             <div className="flex items-center gap-1 border-l border-border/30 pl-2">
               {(['anio_mes', 'exacta', 'rango'] as const).map(m => (
                 <Button key={m} variant="ghost" size="sm" onClick={() => setDraftFiltroFecha({ ...draftFiltroFecha, modo: m })}
-                  className={cn("h-7 px-2.5 text-[10px] rounded-lg font-mono tracking-tight", draftFiltroFecha.modo === m ? "bg-primary/10 text-primary" : "text-muted-foreground/60")}
+                  className={cn("h-7 px-2.5 text-[10px] rounded-lg font-semibold tracking-tight uppercase", draftFiltroFecha.modo === m ? "bg-primary/10 text-primary" : "text-muted-foreground/60")}
                 >
                   {{ anio_mes: 'Año/Mes', exacta: 'Exacta', rango: 'Rango' }[m]}
                 </Button>
               ))}
             </div>
 
-            <div className="flex items-center gap-2 border-l border-border/30 pl-2 font-mono">
+            <div className="flex items-center gap-2 border-l border-border/30 pl-2">
               {draftFiltroFecha.modo === 'anio_mes' && (
                 <div className="flex items-center gap-1">
-                  <select value={draftFiltroFecha.anio ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, anio: e.target.value ? Number(e.target.value) : undefined })} className="h-8 text-xs font-mono bg-card/50 border border-border rounded-lg px-2 text-foreground outline-none">
+                  <select value={draftFiltroFecha.anio ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, anio: e.target.value ? Number(e.target.value) : undefined })} className="h-8 text-xs bg-card/50 border border-border rounded-lg px-2 text-foreground outline-none">
                     <option value="" className="bg-zinc-900">Año</option>
                     {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(a => <option key={a} value={a} className="bg-zinc-900">{a}</option>)}
                   </select>
-                  <select value={draftFiltroFecha.mes ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, mes: e.target.value ? Number(e.target.value) : undefined })} disabled={!draftFiltroFecha.anio} className="h-8 text-xs font-mono bg-card/50 border border-border rounded-lg px-2 text-foreground outline-none disabled:opacity-40">
+                  <select value={draftFiltroFecha.mes ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, mes: e.target.value ? Number(e.target.value) : undefined })} disabled={!draftFiltroFecha.anio} className="h-8 text-xs bg-card/50 border border-border rounded-lg px-2 text-foreground outline-none disabled:opacity-40">
                     <option value="" className="bg-zinc-900">Mes</option>
                     {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'].map((m, i) => <option key={i+1} value={i+1} className="bg-zinc-900">{m}</option>)}
                   </select>
@@ -519,7 +519,7 @@ export default function Kardex() {
                     type="date" 
                     value={draftFiltroFecha.fecha_exacta ?? ''} 
                     onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_exacta: e.target.value || undefined })} 
-                    className="h-8 text-xs font-mono bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
+                    className="h-8 text-xs bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
                   />
                   <Popover>
                     <PopoverTrigger asChild>
@@ -554,7 +554,7 @@ export default function Kardex() {
                       type="date" 
                       value={draftFiltroFecha.fecha_desde ?? ''} 
                       onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_desde: e.target.value || undefined })} 
-                      className="h-8 text-xs font-mono bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
+                      className="h-8 text-xs bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
                     />
                     <Popover>
                       <PopoverTrigger asChild>
@@ -587,7 +587,7 @@ export default function Kardex() {
                       type="date" 
                       value={draftFiltroFecha.fecha_hasta ?? ''} 
                       onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_hasta: e.target.value || undefined })} 
-                      className="h-8 text-xs font-mono bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
+                      className="h-8 text-xs bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
                     />
                     <Popover>
                       <PopoverTrigger asChild>
@@ -628,7 +628,7 @@ export default function Kardex() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-mono px-4 py-2.5 rounded-xl text-left">
+          <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-xs px-4 py-2.5 rounded-xl text-left">
             ✕ {error}
           </div>
         )}
@@ -637,15 +637,15 @@ export default function Kardex() {
           <div className="kardex-no-print p-3 border-b border-border/40 bg-muted/20 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2 h-3 bg-primary rounded-xs" />
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Libro Electrónico de Movimientos</span>
-              <Badge variant="secondary" className="font-mono text-[11px] bg-primary/10 border-primary/20 text-primary">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">Libro Electrónico de Movimientos</span>
+              <Badge variant="secondary" className="text-[11px] bg-primary/10 border-primary/20 text-primary">
                 {movimientos.length.toLocaleString('es-PE')} líneas
               </Badge>
             </div>
             
             <div className="flex items-center gap-4">
               {mostrarSemaforo && (
-                <div className="flex items-center gap-3 font-mono text-[10px] text-muted-foreground/60 hidden sm:flex">
+                <div className="flex items-center gap-3 text-xs text-muted-foreground/60 hidden sm:flex">
   
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full inline-block bg-emerald-500" />
@@ -672,7 +672,7 @@ export default function Kardex() {
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/80">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Postgres Online</span>
               </div>
@@ -680,7 +680,7 @@ export default function Kardex() {
           </div>
 
           {loading ? (
-            <div className="py-20 text-center font-mono text-xs text-muted-foreground/60 flex flex-col items-center justify-center gap-2">
+            <div className="py-20 text-center text-sm text-muted-foreground/60 flex flex-col items-center justify-center gap-2">
               <RefreshCw className="size-5 animate-spin text-primary" />
               <span>Calculando saldos y reconstruyendo costos promedio...</span>
             </div>
@@ -695,7 +695,7 @@ export default function Kardex() {
 
           {movimientos.length > 0 && !loading && (
             <div className="kardex-no-print p-2 bg-muted/10 border-t border-border/40 text-left">
-              <p className="text-[10px] font-mono text-muted-foreground/50 pl-2">
+              <p className="text-xs text-muted-foreground/50 pl-2">
                 Auditoría parcial: mostrando {movimientos.length.toLocaleString('es-PE')} de {totalRegistros.toLocaleString('es-PE')} registros en memoria.
               </p>
             </div>
