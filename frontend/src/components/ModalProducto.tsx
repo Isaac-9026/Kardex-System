@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
-import { AlertCircle, CheckCircle2, Loader2, Package } from "lucide-react"
+import { AlertCircle, CheckCircle2, Loader2, Package, Check, ChevronsUpDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,12 +15,19 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 interface ProductoPayload {
   empresa_id: number
@@ -94,6 +101,7 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
 
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [empresaIdSelect, setEmpresaIdSelect] = useState<string>('')
+  const [openEmpresa, setOpenEmpresa] = useState(false)
   const [codigo, setCodigo] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [codExistencia, setCodExistencia] = useState('01')
@@ -146,7 +154,6 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
 
     setError(null)
     setSuccess(false)
-    setTimeout(() => inputRef.current?.focus(), 120)
   }, [open, productoEditar])
 
   useEffect(() => {
@@ -192,7 +199,12 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
-      <DialogContent className="sm:max-w-[440px] text-left border-t-2 data-[edit=true]:border-t-amber-500 data-[edit=false]:border-t-blue-500" data-edit={modoEditar}>
+      <DialogContent 
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          inputRef.current?.focus();
+        }}
+        className="sm:max-w-[440px] text-left border-t-2 data-[edit=true]:border-t-amber-500 data-[edit=false]:border-t-blue-500" data-edit={modoEditar}>
         
         {/* Cabecera Premium del Catálogo */}
         <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
@@ -215,20 +227,54 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
         <form onSubmit={handleGuardar} className="space-y-4 pt-1">
           
           {/* Select de Empresas Asignadas */}
-          <div className="space-y-1.5">
-            <Label htmlFor="p-empresa" className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Empresa de Asignación *</Label>
-            <Select value={empresaIdSelect} onValueChange={setEmpresaIdSelect}>
-              <SelectTrigger id="p-empresa" className="h-9 text-xs font-mono bg-card w-full">
-                <SelectValue placeholder="Seleccione empresa corporativa" />
-              </SelectTrigger>
-              <SelectContent>
-                {empresas.map((emp) => (
-                  <SelectItem key={emp.id} value={String(emp.id)} className="text-xs font-mono">
-                    {emp.id === 1 ? "⚠️ " : ""}{emp.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-1.5 flex flex-col">
+            <Label className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground/80">Empresa de Asignación *</Label>
+            <Popover open={openEmpresa} onOpenChange={setOpenEmpresa}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openEmpresa}
+                  className="h-9 justify-between text-xs font-mono bg-card w-full px-3"
+                >
+                  <span className="truncate">
+                    {empresaIdSelect
+                      ? empresas.find((emp) => String(emp.id) === empresaIdSelect)?.nombre
+                      : "Seleccione empresa corporativa..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[390px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar empresa..." className="text-xs" />
+                  <CommandList>
+                    <CommandEmpty>No se encontró ninguna empresa.</CommandEmpty>
+                    <CommandGroup>
+                      {empresas.map((emp) => (
+                        <CommandItem
+                          key={emp.id}
+                          value={emp.nombre}
+                          onSelect={() => {
+                            setEmpresaIdSelect(String(emp.id))
+                            setOpenEmpresa(false)
+                          }}
+                          className="text-xs font-mono"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 size-4",
+                              empresaIdSelect === String(emp.id) ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {emp.id === 1 ? "⚠️ " : ""}{emp.nombre}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Input Código de Existencia */}
@@ -238,7 +284,7 @@ export default function ModalProducto({ open, onClose, onGuardado, productoEdita
               id="p-codigo"
               ref={inputRef}
               value={codigo}
-              onChange={e => setCodigo(e.target.value)}
+              onChange={e => setCodigo(e.target.value.toUpperCase())}
               disabled={modoEditar}
               placeholder="Ej: 011004"
               className="font-mono text-xs h-9 bg-card"
