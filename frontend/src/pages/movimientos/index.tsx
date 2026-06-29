@@ -424,10 +424,6 @@ export default function Kardex() {
                 <TrendingDown className={cn("size-3.5", codigosConNegativo > 0 && "text-red-500")} />
                 <span>Con saldo negativo: <strong className={cn("text-foreground", codigosConNegativo > 0 && "text-red-600 dark:text-red-400")}>{codigosConNegativo}</strong></span>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
-                <FileWarning className={cn("size-3.5", productosSinSaldoInicial > 0 && "text-amber-500")} />
-                <span>Sin saldo inicial: <strong className={cn("text-foreground", productosSinSaldoInicial > 0 && "text-amber-600 dark:text-amber-400")}>{productosSinSaldoInicial}</strong></span>
-              </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-1.5 h-auto px-2.5 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-medium ml-auto md:ml-0 hover:bg-blue-500/20 cursor-pointer shadow-none">
