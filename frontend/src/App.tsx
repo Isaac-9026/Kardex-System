@@ -28,6 +28,7 @@ function AppToaster() {
     <SonnerToaster
       position="top-right"
       theme={theme}
+      closeButton
       toastOptions={{
         className: "bg-background/60 backdrop-blur-xl border border-border/50 shadow-2xl rounded-2xl",
         classNames: {
