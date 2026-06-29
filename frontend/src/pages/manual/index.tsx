@@ -1,45 +1,19 @@
 import { Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { createPortal } from "react-dom"
 
 export default function ManualUsuario() {
   const handlePrint = () => {
     window.print()
   }
 
-  return (
+  const manualContent = (
     <>
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body, html { background: white !important; color: black !important; }
-          .page-break { page-break-before: always; }
-          .print-container { max-width: 100% !important; padding: 0 !important; }
-          .print-box { border: 1px solid #ccc !important; background: white !important; box-shadow: none !important; }
-        }
-      `}</style>
-
-      <div className="flex flex-col gap-6 p-4 lg:p-8 w-full max-w-4xl mx-auto print-container">
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-6 text-left no-print">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Manual de Usuario PDF
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Vista optimizada para impresión. Haz clic en "Imprimir PDF" para guardar este documento.
-            </p>
-          </div>
-          <Button onClick={handlePrint} className="gap-2">
-            <Printer className="h-4 w-4" />
-            Imprimir PDF
-          </Button>
-        </div>
-
-        {/* --- INICIO DEL CONTENIDO IMPRIMIBLE --- */}
+      {/* --- INICIO DEL CONTENIDO IMPRIMIBLE --- */}
         <div className="flex flex-col gap-10 bg-card p-10 rounded-xl border border-border/50 print-box text-left">
 
           {/* Portada */}
-          <div className="text-center py-20 border-b border-border/40">
+          <div className="text-center py-20 border-b border-border/40 print-cover">
             <h1 className="text-5xl font-black mb-4">Manual de Usuario</h1>
             <h2 className="text-2xl text-muted-foreground">Sistema Kardex V1.0</h2>
           </div>
@@ -293,7 +267,175 @@ export default function ManualUsuario() {
           </section>
 
         </div>
+    </>
+  );
+
+  return (
+    <>
+      <style>{`
+        @media screen { .kp-section { display:none !important; } }
+
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0 !important; /* 1. MATA TODOS LOS TEXTOS, URL Y FECHAS DEL NAVEGADOR */
+          }
+
+          [data-sidebar="sidebar"],
+          [data-slot="sidebar"],
+          [data-collapsible],
+          aside,
+          header,
+          footer,
+          nav,
+          .site-header,
+          .site-footer {
+            display: none !important;
+            width: 0 !important;
+          }
+
+          #root {
+            display: none !important;
+          }
+
+          body, html {
+            background: white !important;
+            color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .ks-section { display: none !important; }
+          .kp-section { display: block !important; }
+
+          .kp-manual-block {
+            box-sizing: border-box;
+          }
+
+          .print-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .print-table thead {
+            display: table-header-group;
+          }
+          .print-table tfoot {
+            display: table-footer-group;
+          }
+          .print-table tbody, .print-table tr, .print-table td {
+            page-break-inside: auto;
+          }
+
+          .print-box { 
+            border: none !important; 
+            background: white !important; 
+            box-shadow: none !important; 
+            padding: 0 !important;
+            gap: 0 !important;
+          }
+          
+          h1, h2, h3 { 
+            color: #000 !important; 
+            page-break-after: avoid; 
+          }
+          
+          p, ul, ol, li { 
+            color: #333 !important; 
+            font-size: 11pt; 
+            line-height: 1.6; 
+            orphans: 3;
+            widows: 3;
+          }
+          
+          section { 
+            page-break-inside: avoid; 
+            margin-bottom: 2.5rem !important; 
+          }
+          
+          .border-l-4 {
+            border-left-width: 4px !important;
+            border-color: #000 !important;
+            padding-left: 12px !important;
+            margin-bottom: 1rem !important;
+          }
+
+          .print-cover {
+            height: 65vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-bottom: none !important;
+            page-break-after: always;
+            margin-bottom: 0 !important;
+            padding: 0 !important;
+          }
+          
+          .print-cover h1 {
+            font-size: 42pt !important;
+            margin-bottom: 1.5rem !important;
+            text-align: center;
+          }
+          
+          .print-cover h2 {
+            font-size: 20pt !important;
+            color: #555 !important;
+            text-align: center;
+          }
+          
+          /* Evitar cortes feos en listas */
+          ul, ol {
+            page-break-inside: avoid;
+          }
+
+          .page-break {
+            page-break-before: always;
+          }
+        }
+      `}</style>
+
+      {/* Vista en pantalla */}
+      <div className="flex flex-col gap-6 p-4 lg:p-8 w-full max-w-4xl mx-auto ks-section">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-6 text-left">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Manual de Usuario PDF
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Vista optimizada para impresión. Haz clic en "Imprimir PDF" para guardar este documento.
+            </p>
+          </div>
+          <Button onClick={handlePrint} className="gap-2">
+            <Printer className="h-4 w-4" />
+            Imprimir PDF
+          </Button>
+        </div>
+        {manualContent}
       </div>
+
+      {/* Vista en impresión (inyectada en el body) */}
+      {createPortal(
+        <div className="kp-section w-full relative">
+          <table className="print-table">
+            <thead>
+              <tr><td style={{ height: '2.5cm', border: 'none', padding: 0 }}></td></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: '0 2cm', border: 'none' }}>
+                  {manualContent}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr><td style={{ height: '2cm', border: 'none', padding: 0 }}></td></tr>
+            </tfoot>
+          </table>
+        </div>,
+        document.body
+      )}
     </>
   )
 }
