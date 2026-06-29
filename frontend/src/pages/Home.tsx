@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 // ── COMPONENTES DE DISEÑO ATÓMICOS DE LA PLANTILLA ──
 import { Button } from "@/components/ui/button"
@@ -84,14 +84,23 @@ export default function Home() {
         empresaId ?? undefined,
       )
       if (resultado) {
-        toast.success(`Kardex procesado correctamente`, { id: toastId })
+        toast.success('Procesamiento exitoso', { 
+          id: toastId,
+          description: "Los archivos se han procesado correctamente."
+        })
         localStorage.setItem("ultimo_procesamiento_id", String(resultado.procesamiento_id))
         navigate(`/kardex/${resultado.procesamiento_id}`)
       } else {
-        toast.error('No se pudo procesar el Kardex', { id: toastId })
+        toast.error('Fallo en el procesamiento', { 
+          id: toastId,
+          description: "No se pudo procesar el Kardex."
+        })
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Error al procesar el Kardex', { id: toastId })
+      toast.error('Error de Procesamiento', { 
+        id: toastId,
+        description: err?.message || 'El archivo contiene un formato inválido o datos inconsistentes.' 
+      })
     }
   }
 
@@ -106,7 +115,7 @@ export default function Home() {
         empresaId={1}
         onClose={() => setModalSaldoOpen(false)}
         saldoEditar={null}
-        onGuardado={() => toast.success("Saldo inicial guardado correctamente")}
+        onGuardado={() => toast.success("Guardado exitoso", { description: "El saldo inicial se ha guardado correctamente." })}
       />
 
       {/* Inicializador del Tour Guiado */}
