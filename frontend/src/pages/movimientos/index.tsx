@@ -253,7 +253,7 @@ export default function Kardex() {
         }
       `}</style>
 
-      <div className="flex flex-col gap-5 p-4 lg:p-6 w-full max-w-[1100px] mx-auto animate-in fade-in duration-200">
+      <div className="flex flex-col gap-5 p-4 lg:p-6 2xl:px-8 w-full max-w-[1800px] 2xl:max-w-[2100px] mx-auto animate-in fade-in duration-200">
         
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border/40 pb-4 text-left kardex-no-print">
           <div className="flex flex-col gap-0.5">
