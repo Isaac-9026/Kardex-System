@@ -39,14 +39,14 @@ export const useKardex = () => {
   const subirArchivos = useCallback(async (
     archivosMovimientos: File[],
     archivoSaldos:       File | null,
-    // 🧠 ¡Quitamos empresaId de aquí!
+    empresaId?:          number,
   ) => {
     setUploading(true)
     setState(prev => ({ ...prev, error: null }))
 
     try {
       // 🧠 Invocación limpia en cascada directa al backend universal
-      const upload = await procesarArchivos(archivosMovimientos, archivoSaldos)
+      const upload = await procesarArchivos(archivosMovimientos, archivoSaldos, empresaId)
       const data   = await getKardex(upload.procesamiento_id)
 
       setState({
