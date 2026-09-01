@@ -268,7 +268,22 @@ export default function Kardex() {
           {/* Action Bar / Toolbar */}
           <div className="flex flex-wrap items-center gap-2 self-end md:self-auto bg-muted/20 border border-border/50 p-1.5 rounded-xl shadow-sm">
             
-            {/* Grupo 1: Filtros y Alertas */}
+            {/* Buscador Global (Código) */}
+            <div className="relative flex items-center pr-2 border-r border-border/50">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input 
+                 placeholder="Buscar código..." 
+                 value={draftCodigo}
+                 onChange={e => setDraftCodigo(e.target.value)}
+                 onKeyDown={e => e.key === 'Enter' && aplicarFiltros()}
+                 className="h-8 w-[140px] md:w-[180px] pl-8 pr-8 text-xs bg-background/50 border-border/50 rounded-lg focus-visible:ring-1 focus-visible:ring-primary/30 shadow-none"
+              />
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden md:flex h-4 select-none items-center gap-1 rounded bg-muted/80 px-1 font-mono text-[10px] text-muted-foreground font-bold">
+                ↵
+              </div>
+            </div>
+
+            {/* Grupo 1: Filtros de Fecha y Alertas */}
             <div className="flex items-center gap-1.5 pr-2 border-r border-border/50">
               {erroresIntegridad > 0 && (
                 <Button
@@ -280,14 +295,81 @@ export default function Kardex() {
                   <AlertCircle className="size-3.5 mr-1" /> {erroresIntegridad} Anomalías
                 </Button>
               )}
-              <Button
-                variant={filtrosAbiertos ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setFiltrosAbiertos(v => !v)}
-                className={cn("h-8 text-xs rounded-lg gap-1.5 cursor-pointer", filtrosAbiertos ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted/50")}
-              >
-                <Filter className="size-3.5" /> Filtros
-              </Button>
+              
+              <Popover open={filtrosAbiertos} onOpenChange={setFiltrosAbiertos}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={filtrosAbiertos ? "default" : "ghost"}
+                    size="sm"
+                    className={cn("h-8 text-xs rounded-lg gap-1.5 cursor-pointer", filtrosAbiertos ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted/50")}
+                  >
+                    <Filter className="size-3.5" /> Filtro Fecha
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-4 rounded-xl shadow-2xl border-border/50 bg-popover" align="start">
+                   <div className="space-y-4">
+                     <div className="flex items-center gap-2 border-b border-border/40 pb-2">
+                       <CalendarIcon className="size-4 text-primary" />
+                       <h4 className="text-sm font-semibold">Filtrar por Fecha</h4>
+                     </div>
+                     <div className="flex bg-muted/50 p-1 rounded-lg">
+                       {(['anio_mes', 'exacta', 'rango'] as const).map(m => (
+                         <Button key={m} variant="ghost" size="sm" onClick={() => setDraftFiltroFecha({ ...draftFiltroFecha, modo: m })}
+                           className={cn("h-7 flex-1 text-[10px] rounded-md font-bold uppercase", draftFiltroFecha.modo === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}
+                         >
+                           {{ anio_mes: 'Año/Mes', exacta: 'Exacta', rango: 'Rango' }[m]}
+                         </Button>
+                       ))}
+                     </div>
+                     
+                     <div className="pt-2 flex flex-col gap-2">
+                       {draftFiltroFecha.modo === 'anio_mes' && (
+                         <div className="flex items-center gap-2">
+                           <select value={draftFiltroFecha.anio ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, anio: e.target.value ? Number(e.target.value) : undefined })} className="h-9 w-full text-xs bg-card border border-input rounded-lg px-2 text-foreground outline-none cursor-pointer">
+                             <option value="">Año</option>
+                             {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(a => <option key={a} value={a}>{a}</option>)}
+                           </select>
+                           <select value={draftFiltroFecha.mes ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, mes: e.target.value ? Number(e.target.value) : undefined })} disabled={!draftFiltroFecha.anio} className="h-9 w-full text-xs bg-card border border-input rounded-lg px-2 text-foreground outline-none disabled:opacity-40 cursor-pointer">
+                             <option value="">Mes</option>
+                             {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'].map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+                           </select>
+                         </div>
+                       )}
+
+                       {draftFiltroFecha.modo === 'exacta' && (
+                         <div className="flex flex-col gap-1.5">
+                           <Label className="text-[10px] uppercase text-muted-foreground">Seleccionar día</Label>
+                           <div className="flex items-center gap-2 bg-card border border-input rounded-lg px-2 focus-within:ring-1 focus-within:ring-primary/40">
+                             <input type="date" value={draftFiltroFecha.fecha_exacta ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_exacta: e.target.value || undefined })} className="h-9 w-full text-xs bg-transparent border-none text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" />
+                           </div>
+                         </div>
+                       )}
+
+                       {draftFiltroFecha.modo === 'rango' && (
+                         <div className="flex flex-col gap-2">
+                           <div className="flex flex-col gap-1.5">
+                             <Label className="text-[10px] uppercase text-muted-foreground">Desde</Label>
+                             <div className="flex items-center gap-2 bg-card border border-input rounded-lg px-2 focus-within:ring-1 focus-within:ring-primary/40">
+                               <input type="date" value={draftFiltroFecha.fecha_desde ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_desde: e.target.value || undefined })} className="h-9 w-full text-xs bg-transparent border-none text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" />
+                             </div>
+                           </div>
+                           <div className="flex flex-col gap-1.5">
+                             <Label className="text-[10px] uppercase text-muted-foreground">Hasta</Label>
+                             <div className="flex items-center gap-2 bg-card border border-input rounded-lg px-2 focus-within:ring-1 focus-within:ring-primary/40">
+                               <input type="date" value={draftFiltroFecha.fecha_hasta ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_hasta: e.target.value || undefined })} className="h-9 w-full text-xs bg-transparent border-none text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" />
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                     
+                     <div className="flex items-center gap-2 pt-3 border-t border-border/40 mt-2">
+                       <Button size="sm" variant="outline" onClick={limpiarFiltros} className="h-8 flex-1 text-xs">Limpiar</Button>
+                       <Button size="sm" onClick={() => { aplicarFiltros(); setFiltrosAbiertos(false); }} className="h-8 flex-1 text-xs font-bold bg-primary text-primary-foreground">Aplicar Rango</Button>
+                     </div>
+                   </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Grupo 2: Vista / Configuración */}
@@ -500,151 +582,7 @@ export default function Kardex() {
           </div>
         )}
 
-        {filtrosAbiertos && (
-          <div className="kardex-no-print w-full flex flex-wrap items-center gap-4 bg-card/30 backdrop-blur-md border border-border/50 rounded-xl p-3 text-left">
-            <div className="flex items-center gap-2 pr-2 border-r border-border/40">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Filtrar: </span>
-            </div>
 
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-muted-foreground/80">Cód:</span>
-              <Input value={draftCodigo} onChange={e => setDraftCodigo(e.target.value)} placeholder="011039" className="w-24 h-8 text-xs bg-card" />
-            </div>
-
-            <div className="flex items-center gap-1 border-l border-border/30 pl-2">
-              {(['anio_mes', 'exacta', 'rango'] as const).map(m => (
-                <Button key={m} variant="ghost" size="sm" onClick={() => setDraftFiltroFecha({ ...draftFiltroFecha, modo: m })}
-                  className={cn("h-7 px-2.5 text-[10px] rounded-lg font-semibold tracking-tight uppercase", draftFiltroFecha.modo === m ? "bg-primary/10 text-primary" : "text-muted-foreground/60")}
-                >
-                  {{ anio_mes: 'Año/Mes', exacta: 'Exacta', rango: 'Rango' }[m]}
-                </Button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 border-l border-border/30 pl-2">
-              {draftFiltroFecha.modo === 'anio_mes' && (
-                <div className="flex items-center gap-1">
-                  <select value={draftFiltroFecha.anio ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, anio: e.target.value ? Number(e.target.value) : undefined })} className="h-8 text-xs bg-card/50 border border-border rounded-lg px-2 text-foreground outline-none">
-                    <option value="" className="bg-zinc-900">Año</option>
-                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(a => <option key={a} value={a} className="bg-zinc-900">{a}</option>)}
-                  </select>
-                  <select value={draftFiltroFecha.mes ?? ''} onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, mes: e.target.value ? Number(e.target.value) : undefined })} disabled={!draftFiltroFecha.anio} className="h-8 text-xs bg-card/50 border border-border rounded-lg px-2 text-foreground outline-none disabled:opacity-40">
-                    <option value="" className="bg-zinc-900">Mes</option>
-                    {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov','Dic'].map((m, i) => <option key={i+1} value={i+1} className="bg-zinc-900">{m}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/*FECHA EXACTA*/}
-              {draftFiltroFecha.modo === 'exacta' && (
-                <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
-                  <input 
-                    type="date" 
-                    value={draftFiltroFecha.fecha_exacta ?? ''} 
-                    onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_exacta: e.target.value || undefined })} 
-                    className="h-8 text-xs bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
-                  />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
-                        <CalendarIcon className="size-3.5" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={parseStringToDate(draftFiltroFecha.fecha_exacta)}
-                        onSelect={(date) => 
-                          setDraftFiltroFecha({ 
-                            ...draftFiltroFecha, 
-                            fecha_exacta: date ? format(date, "yyyy-MM-dd") : undefined 
-                          })
-                        }
-                        captionLayout="dropdown"
-                        locale={es}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-
-              {/*RANGO */}
-              {draftFiltroFecha.modo === 'rango' && (
-                <div className="flex items-center gap-1.5">
-                  <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
-                    <input 
-                      type="date" 
-                      value={draftFiltroFecha.fecha_desde ?? ''} 
-                      onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_desde: e.target.value || undefined })} 
-                      className="h-8 text-xs bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
-                          <CalendarIcon className="size-3.5" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={parseStringToDate(draftFiltroFecha.fecha_desde)}
-                          onSelect={(date) => 
-                            setDraftFiltroFecha({ 
-                              ...draftFiltroFecha, 
-                              fecha_desde: date ? format(date, "yyyy-MM-dd") : undefined 
-                            })
-                          }
-                          captionLayout="dropdown"
-                          locale={es}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <span className="text-muted-foreground/40">–</span>
-
-                  <div className="flex items-center gap-1 bg-card border border-border rounded-lg pr-1 focus-within:ring-1 focus-within:ring-primary/40">
-                    <input 
-                      type="date" 
-                      value={draftFiltroFecha.fecha_hasta ?? ''} 
-                      onChange={e => setDraftFiltroFecha({ ...draftFiltroFecha, fecha_hasta: e.target.value || undefined })} 
-                      className="h-8 text-xs bg-transparent border-none px-2 text-foreground outline-none shadow-none [&::-webkit-calendar-picker-indicator]:hidden" 
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-muted/80 text-muted-foreground/70 shrink-0 cursor-pointer">
-                          <CalendarIcon className="size-3.5" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-xl bg-popover border shadow-xl" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={parseStringToDate(draftFiltroFecha.fecha_hasta)}
-                          onSelect={(date) => 
-                            setDraftFiltroFecha({ 
-                              ...draftFiltroFecha, 
-                              fecha_hasta: date ? format(date, "yyyy-MM-dd") : undefined 
-                            })
-                          }
-                          captionLayout="dropdown"
-                          locale={es}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="ml-auto flex items-center gap-1.5">
-              <Button size="sm" variant="outline" onClick={limpiarFiltros} className="h-8 text-[11px] rounded-lg">Limpiar</Button>
-              <Button size="sm" onClick={aplicarFiltros} className="h-8 text-[11px] rounded-lg font-bold">Aplicar</Button>
-            </div>
-          </div>
-        )}
 
         <div className="kardex-no-print w-full text-left">
           {codigosVisibles.length > 0 && <BadgeProducto codigos={codigosVisibles} />}
