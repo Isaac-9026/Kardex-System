@@ -489,86 +489,14 @@ export default function Kardex() {
         </div>
 
         {metricas && (
-          <div className="flex flex-col gap-3 kardex-no-print w-full">
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
-              <MetricCard label="Movimientos" value={totalRegistros.toLocaleString('es-PE')} sub="operaciones" colorClass="text-foreground" strokeColor="#3b82f6" />
+          <div className="flex flex-col gap-3 kardex-no-print w-full mb-2">
+            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-3">
               <MetricCard label="Entradas" value={fmtS(metricas.total_ent_costo)} sub={`${fmt(metricas.total_ent_cantidad)} unds`} colorClass="text-blue-500" strokeColor="#2563eb" />
               <MetricCard label="Salidas" value={fmtS(metricas.total_sal_costo)} sub={`${fmt(metricas.total_sal_cantidad)} unds`} colorClass="text-rose-500" strokeColor="#e11d48" />
               <MetricCard label="Saldo de Cierre" value={fmtS(metricas.saldo_final_costo)} sub={`${fmt(metricas.saldo_final_cantidad)} unds`} colorClass="text-amber-500 dark:text-amber-400" strokeColor="#f59e0b" />
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-[11px] mt-1">
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
-                <Package className="size-3.5" />
-                <span>Productos: <strong className="text-foreground">{productosVisibles}</strong></span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
-                <ListOrdered className="size-3.5" />
-                <span>Movimientos: <strong className="text-foreground">{movimientosFiltrados}</strong></span>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/40 border border-border/50 text-muted-foreground">
-                <TrendingDown className={cn("size-3.5", codigosConNegativo > 0 && "text-red-500")} />
-                <span>Con saldo negativo: <strong className={cn("text-foreground", codigosConNegativo > 0 && "text-red-600 dark:text-red-400")}>{codigosConNegativo}</strong></span>
-              </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-1.5 h-auto px-2.5 py-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 font-medium ml-auto md:ml-0 hover:bg-blue-500/20 cursor-pointer shadow-none">
-                    <CalendarIcon className="size-3.5" />
-                    <span>Ver Fechas de Saldos Inic.</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0 rounded-xl overflow-hidden shadow-xl border-border/50" align="end">
-                  <div className="bg-muted/60 px-4 py-3 border-b border-border/50">
-                    <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                      <CalendarIcon className="size-4 text-blue-500" />
-                      Saldos Iniciales (BD)
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-1">Resumen de la fecha de inicio tomada por producto.</p>
-                  </div>
-                  <div className="max-h-[300px] overflow-y-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-card sticky top-0 border-b border-border/50 shadow-sm z-10">
-                        <tr>
-                          <th className="px-4 py-2 font-bold text-muted-foreground">Código</th>
-                          <th className="px-4 py-2 font-bold text-muted-foreground">Fecha del Saldo</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/30">
-                        {resumenSaldosIniciales.map(r => (
-                          <tr key={r.codigo} className="hover:bg-muted/40 transition-colors">
-                            <td className="px-4 py-2 font-mono font-bold text-blue-600 dark:text-blue-400">{r.codigo}</td>
-                            <td className="px-4 py-2 font-mono">
-                              {r.hasSaldo ? (
-                                <span className="text-foreground">{r.fecha}</span>
-                              ) : (
-                                <span className="text-amber-600 dark:text-amber-500 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">
-                                  <AlertTriangle className="size-3" /> No tiene
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                        {resumenSaldosIniciales.length === 0 && (
-                          <tr>
-                            <td colSpan={2} className="px-4 py-6 text-center text-sm text-muted-foreground">No hay productos visibles.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-
           </div>
         )}
-
-
-
-        <div className="kardex-no-print w-full text-left">
-          {codigosVisibles.length > 0 && <BadgeProducto codigos={codigosVisibles} />}
-        </div>
 
         {error && (
           <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive text-xs px-4 py-2.5 rounded-xl text-left">
