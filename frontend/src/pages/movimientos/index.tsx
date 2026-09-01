@@ -23,35 +23,17 @@ import BadgeProducto from '@/components/BadgeProducto'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
 import type { FiltroFecha as IFiltroFecha } from '@/types'
 
-const Sparkline = ({ color }: { color: string }) => {
-  const pts = [20, 35, 28, 50, 42, 60, 55, 70, 65, 80, 72, 88]
-  const w = 90, h = 32
-  const max = Math.max(...pts), min = Math.min(...pts)
-  const xs = pts.map((_, i) => (i / (pts.length - 1)) * w)
-  const ys = pts.map(p => h - ((p - min) / (max - min)) * h * 0.8 - h * 0.1)
-  const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ')
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="opacity-40 shrink-0">
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
-}
-
 interface MetricCardProps {
-  label: string; value: string; sub: string; colorClass: string; strokeColor: string; tooltip?: string
+  label: string; value: string; sub: string; colorClass: string; strokeColor: string
 }
-const MetricCard = ({ label, value, sub, colorClass, strokeColor, tooltip }: MetricCardProps) => (
-  <div className="flex-1 bg-card/30 backdrop-blur-md border border-border/50 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden min-w-[180px]">
-    <div className="space-y-1 z-10 text-left">
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{label}</span>
-        {tooltip && <InfoTooltip content={tooltip} />}
-      </div>
-      <h3 className={`text-2xl font-bold tracking-tight ${colorClass}`}>{value}</h3>
-      <p className="text-xs text-muted-foreground/60">{sub}</p>
+const MetricCard = ({ label, value, sub, colorClass }: MetricCardProps) => (
+  <div className="bg-card/40 backdrop-blur-md border border-border/50 rounded-lg px-3 py-2 flex items-center justify-between min-w-0 shadow-sm transition-colors hover:bg-card/60">
+    <div className="flex items-center gap-1.5 truncate pr-2">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 truncate">{label}</span>
     </div>
-    <div className="absolute right-4 bottom-3 z-0">
-      <Sparkline color={strokeColor} />
+    <div className="flex items-center gap-1.5 shrink-0">
+      <span className={`text-[13px] font-bold tracking-tight ${colorClass}`}>{value}</span>
+      <span className="text-[10px] bg-muted/80 text-muted-foreground px-1.5 py-0.5 rounded-md font-medium">{sub}</span>
     </div>
   </div>
 )
@@ -508,11 +490,11 @@ export default function Kardex() {
 
         {metricas && (
           <div className="flex flex-col gap-3 kardex-no-print w-full">
-            <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard label="Total Movimientos" value={totalRegistros.toLocaleString('es-PE')} sub="operaciones" colorClass="text-foreground" strokeColor="#3b82f6" tooltip="Cantidad total de transacciones (entradas y salidas) evaluadas en este periodo." />
-              <MetricCard label="Total Entradas" value={fmtS(metricas.total_ent_costo)} sub={`${fmt(metricas.total_ent_cantidad)} unds`} colorClass="text-blue-400" strokeColor="#2563eb" tooltip="Suma del costo total de todas las entradas (compras, etc.) en el periodo filtrado." />
-              <MetricCard label="Total Salidas" value={fmtS(metricas.total_sal_costo)} sub={`${fmt(metricas.total_sal_cantidad)} unds`} colorClass="text-red-400" strokeColor="#ef4444" tooltip="Suma del costo total de todas las salidas (ventas, despachos) en el periodo filtrado." />
-              <MetricCard label="Saldo de Cierre" value={fmtS(metricas.saldo_final_costo)} sub={`${fmt(metricas.saldo_final_cantidad)} unds`} colorClass="text-amber-400" strokeColor="#f59e0b" tooltip="Valorización total del inventario al finalizar el periodo filtrado." />
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
+              <MetricCard label="Movimientos" value={totalRegistros.toLocaleString('es-PE')} sub="operaciones" colorClass="text-foreground" strokeColor="#3b82f6" />
+              <MetricCard label="Entradas" value={fmtS(metricas.total_ent_costo)} sub={`${fmt(metricas.total_ent_cantidad)} unds`} colorClass="text-blue-500" strokeColor="#2563eb" />
+              <MetricCard label="Salidas" value={fmtS(metricas.total_sal_costo)} sub={`${fmt(metricas.total_sal_cantidad)} unds`} colorClass="text-rose-500" strokeColor="#e11d48" />
+              <MetricCard label="Saldo de Cierre" value={fmtS(metricas.saldo_final_costo)} sub={`${fmt(metricas.saldo_final_cantidad)} unds`} colorClass="text-amber-500 dark:text-amber-400" strokeColor="#f59e0b" />
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-[11px] mt-1">
