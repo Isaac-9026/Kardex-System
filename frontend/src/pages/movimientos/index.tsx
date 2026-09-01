@@ -265,136 +265,158 @@ export default function Kardex() {
             </p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-1.5 self-end md:self-auto">
-            {erroresIntegridad > 0 && (
+          {/* Action Bar / Toolbar */}
+          <div className="flex flex-wrap items-center gap-2 self-end md:self-auto bg-muted/20 border border-border/50 p-1.5 rounded-xl shadow-sm">
+            
+            {/* Grupo 1: Filtros y Alertas */}
+            <div className="flex items-center gap-1.5 pr-2 border-r border-border/50">
+              {erroresIntegridad > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => kardexTableRef.current?.scrollToFirstAnomaly()}
+                  className="h-8 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-lg"
+                >
+                  <AlertCircle className="size-3.5 mr-1" /> {erroresIntegridad} Anomalías
+                </Button>
+              )}
               <Button
-                variant="outline"
+                variant={filtrosAbiertos ? "default" : "ghost"}
                 size="sm"
-                onClick={() => kardexTableRef.current?.scrollToFirstAnomaly()}
-                className="h-9 text-xs border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl"
+                onClick={() => setFiltrosAbiertos(v => !v)}
+                className={cn("h-8 text-xs rounded-lg gap-1.5 cursor-pointer", filtrosAbiertos ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted/50")}
               >
-                <AlertCircle className="size-4 mr-1" /> {erroresIntegridad} Anomalías
+                <Filter className="size-3.5" /> Filtros
               </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFiltrosAbiertos(v => !v)}
-              className={cn("h-9 text-xs rounded-xl gap-1.5 cursor-pointer", filtrosAbiertos && "bg-primary/10 text-primary border-primary/30")}
-            >
-              <Filter className="size-3.5" /> Filtros
-            </Button>
+            </div>
 
-
-            {/* NUEVO: BOTÓN Y PANEL FLOTANTE DE TOLERANCIA */}
-  <Popover>
-    <PopoverTrigger asChild>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-9 text-xs rounded-xl gap-1.5 cursor-pointer hover:bg-primary/5 hover:text-primary hover:border-primary/30"
-      >
-        <SlidersHorizontal className="size-3.5" /> Tolerancia: {toleranciaModo === "custom" ? (toleranciaPersonalizada || "0.10") : toleranciaModo}
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-80 p-4 rounded-xl bg-popover border border-border/50 shadow-2xl" align="end">
-      <div className="flex flex-col gap-3">
-        <div className="space-y-1">
-          <h4 className="text-sm font-semibold tracking-tight flex items-center gap-2">
-            <SlidersHorizontal className="size-4 text-primary" />
-            Tolerancia Permitida
-            <InfoTooltip content="Representa la diferencia máxima permitida entre los valores calculados por el sistema y los valores registrados antes de marcar una inconsistencia." />
-          </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Establece el margen de redondeo aceptable (S/.). Las diferencias que superen este límite serán marcadas como alertas críticas para detectar alteraciones manuales o descuadres injustificados en el Excel.
-          </p>
-        </div>
-
-      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg p-3 text-xs leading-tight text-left">
-        ⚠️ <strong>Solo afecta a las alertas.</strong> Cambiar este margen no altera los datos del kardex, los saldos ni los costos registrados.
-      </div>
-
-        <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
-          <select 
-            value={toleranciaModo} 
-            onChange={e => setToleranciaModo(e.target.value)}
-            className="h-9 text-xs bg-card border border-input rounded-lg px-2 text-foreground outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
-          >
-            <option value="0.00">0.00 (Restricción Exacta - No recomen.)</option>
-            <option value="0.05">0.05 (Estricto)</option>
-            <option value="0.10">0.10 (Estándar recomendado)</option>
-            <option value="0.50">0.50 (Flexible)</option>
-            <option value="custom">Valor personalizado...</option>
-          </select>
-
-          {toleranciaModo === "custom" && (
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Ej: 0.25"
-              value={toleranciaPersonalizada}
-              onChange={e => setToleranciaPersonalizada(e.target.value)}
-              className="h-9 text-xs bg-card px-3 rounded-lg"
-            />
-          )}
-
-          <Button 
-            size="sm" 
-            onClick={handleRevalidarTolerancia} 
-            disabled={revalidando}
-            className="w-full h-9 mt-1 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-amber-950 rounded-lg shadow-sm"
-          >
-            {revalidando ? <RefreshCw className="size-3.5 animate-spin mr-2" /> : <Check className="size-3.5 mr-2" />} 
-            Revalidar Anomalías
-          </Button>
-        </div>
-      </div>
-    </PopoverContent>
-  </Popover>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMostrarSemaforo(v => !v)}
-              className={cn("h-9 text-xs rounded-xl gap-1.5 cursor-pointer", mostrarSemaforo && "bg-amber-500/10 text-amber-400 border-amber-500/30")}
-            >
-              <ShieldCheck className="size-3.5" /> Revisión
-            </Button>
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
+            {/* Grupo 2: Vista / Configuración */}
+            <div className="flex items-center gap-1.5 pr-2 border-r border-border/50">
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    onClick={handleImprimir}
-                    disabled={movimientos.length === 0}
-                    className="h-9 text-xs text-emerald-400 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl cursor-pointer"
+                    className="h-8 text-xs rounded-lg gap-1.5 cursor-pointer hover:bg-muted/50"
                   >
-                    <Printer className="size-3.5 mr-1" /> Reporte
+                    <SlidersHorizontal className="size-3.5" /> Configuración
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs max-w-xs">
-                  Genera una vista optimizada en PDF lista para impresión (Kardex Fiscal).
-                </TooltipContent>
-              </Tooltip>
+                </PopoverTrigger>
+                <PopoverContent className="w-[340px] p-0 rounded-xl bg-popover border border-border/50 shadow-2xl" align="end">
+                  {/* Revisión Toggle */}
+                  <div className="flex items-center justify-between p-4 border-b border-border/40 bg-muted/10">
+                    <div className="flex flex-col gap-0.5">
+                      <h4 className="text-sm font-semibold tracking-tight flex items-center gap-1.5">
+                        <ShieldCheck className={cn("size-4", mostrarSemaforo ? "text-amber-500" : "text-muted-foreground")} />
+                        Revisión (Semáforo)
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground">Muestra iconos de estado por fila.</p>
+                    </div>
+                    <Button
+                      variant={mostrarSemaforo ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setMostrarSemaforo(v => !v)}
+                      className={cn("h-7 px-3 text-xs rounded-md shadow-sm transition-colors cursor-pointer", mostrarSemaforo ? "bg-amber-500 text-amber-950 hover:bg-amber-600 border-amber-600" : "hover:bg-muted")}
+                    >
+                      {mostrarSemaforo ? "Activado" : "Desactivado"}
+                    </Button>
+                  </div>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    onClick={handleExportar}
-                    disabled={exporting || movimientos.length === 0}
-                    className="h-9 text-xs font-semibold shadow-sm bg-primary text-primary-foreground rounded-xl cursor-pointer gap-1.5"
-                  >
-                    {exporting ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Exportar
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs max-w-xs">
-                  Descarga los datos actuales en formato Excel (.xlsx).
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                  {/* Tolerancia Form */}
+                  <div className="p-4 flex flex-col gap-3">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-semibold tracking-tight flex items-center gap-2">
+                        <SlidersHorizontal className="size-4 text-primary" />
+                        Tolerancia Permitida
+                        <InfoTooltip content="Representa la diferencia máxima permitida entre los valores calculados por el sistema y los valores registrados antes de marcar una inconsistencia." />
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Actual: <strong>{toleranciaModo === "custom" ? (toleranciaPersonalizada || "0.10") : toleranciaModo}</strong>. Establece el margen de redondeo aceptable (S/.). Las diferencias que superen este límite serán marcadas como alertas críticas.
+                      </p>
+                    </div>
+
+                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg p-2.5 text-[10px] leading-tight text-left">
+                      ⚠️ <strong>Solo afecta a las alertas.</strong> Cambiar este margen no altera los datos del kardex, los saldos ni los costos registrados.
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
+                      <select 
+                        value={toleranciaModo} 
+                        onChange={e => setToleranciaModo(e.target.value)}
+                        className="h-8 text-xs bg-card border border-input rounded-lg px-2 text-foreground outline-none focus-visible:ring-1 focus-visible:ring-primary/40 cursor-pointer"
+                      >
+                        <option value="0.00">0.00 (Restricción Exacta)</option>
+                        <option value="0.05">0.05 (Estricto)</option>
+                        <option value="0.10">0.10 (Estándar recomendado)</option>
+                        <option value="0.50">0.50 (Flexible)</option>
+                        <option value="custom">Personalizado...</option>
+                      </select>
+
+                      {toleranciaModo === "custom" && (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Ej: 0.25"
+                          value={toleranciaPersonalizada}
+                          onChange={e => setToleranciaPersonalizada(e.target.value)}
+                          className="h-8 text-xs bg-card px-3 rounded-lg"
+                        />
+                      )}
+
+                      <Button 
+                        size="sm" 
+                        onClick={handleRevalidarTolerancia} 
+                        disabled={revalidando}
+                        className="w-full h-8 mt-1 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-amber-950 rounded-lg shadow-sm cursor-pointer transition-colors"
+                      >
+                        {revalidando ? <RefreshCw className="size-3.5 animate-spin mr-2" /> : <Check className="size-3.5 mr-2" />} 
+                        Revalidar Anomalías
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Grupo 3: Exportar e Imprimir */}
+            <div className="flex items-center gap-1.5">
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleImprimir}
+                      disabled={movimientos.length === 0}
+                      className="h-8 px-2 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg cursor-pointer transition-colors"
+                    >
+                      <Printer className="size-3.5 lg:mr-1.5" /> <span className="hidden lg:inline">PDF</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs max-w-xs">
+                    Genera una vista optimizada en PDF lista para impresión (Kardex Fiscal).
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      onClick={handleExportar}
+                      disabled={exporting || movimientos.length === 0}
+                      className="h-8 px-3 text-xs font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg cursor-pointer gap-1.5 ml-0.5 transition-colors"
+                    >
+                      {exporting ? <RefreshCw className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Exportar Excel
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs max-w-xs">
+                    Descarga los datos actuales en formato Excel (.xlsx).
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
           </div>
         </div>
 
