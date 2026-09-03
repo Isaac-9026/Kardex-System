@@ -522,13 +522,43 @@ export const KardexTable = forwardRef<KardexTableHandle, KardexTableProps>(
           </div>
 
           {totalPaginas > 1 && (
-            <div className="flex items-center justify-between py-2 border-t border-border/40 font-medium">
-              <span className="text-xs text-muted-foreground font-mono">Página {pagina} de {totalPaginas}</span>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8 bg-transparent" onClick={() => setPagina(1)} disabled={pagina === 1}><ChevronsLeft className="size-4" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-8 bg-transparent" onClick={() => setPagina((p) => p - 1)} disabled={pagina === 1}><ChevronLeft className="size-4" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-8 bg-transparent" onClick={() => setPagina((p) => p + 1)} disabled={pagina === totalPaginas}><ChevronRight className="size-4" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-8 bg-transparent" onClick={() => setPagina(totalPaginas)} disabled={pagina === totalPaginas}><ChevronsRight className="size-4" /></Button>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2.5 px-4 border-t border-border/40 bg-muted/10 font-medium rounded-b-xl">
+              <div className="text-[11px] text-muted-foreground">
+                Mostrando <strong className="text-foreground font-mono">{(pagina - 1) * FILAS_POR_PAGINA + 1}</strong> al <strong className="text-foreground font-mono">{Math.min(pagina * FILAS_POR_PAGINA, movimientos.length)}</strong> de <strong className="text-foreground font-mono">{movimientos.length}</strong> movimientos
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider hidden sm:inline">Ir a pág</span>
+                  <input
+                    key={pagina}
+                    type="number"
+                    min={1}
+                    max={totalPaginas}
+                    defaultValue={pagina}
+                    onBlur={(e) => {
+                      const p = parseInt(e.target.value);
+                      if (!isNaN(p) && p >= 1 && p <= totalPaginas) {
+                        setPagina(p);
+                      } else {
+                        e.target.value = pagina.toString();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.currentTarget.blur();
+                    }}
+                    className="w-12 h-7 text-xs font-mono text-center bg-card border border-border/80 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-primary/40 [&::-webkit-inner-spin-button]:hidden"
+                  />
+                  <span className="text-[11px] text-muted-foreground font-mono">/ {totalPaginas}</span>
+                </div>
+                
+                <div className="flex items-center bg-card border border-border/60 rounded-lg p-0.5 shadow-sm">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => setPagina(1)} disabled={pagina === 1}><ChevronsLeft className="size-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => setPagina((p) => p - 1)} disabled={pagina === 1}><ChevronLeft className="size-3.5" /></Button>
+                  <div className="w-[1px] h-4 bg-border/60 mx-0.5" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => setPagina((p) => p + 1)} disabled={pagina === totalPaginas}><ChevronRight className="size-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30" onClick={() => setPagina(totalPaginas)} disabled={pagina === totalPaginas}><ChevronsRight className="size-3.5" /></Button>
+                </div>
               </div>
             </div>
           )}
